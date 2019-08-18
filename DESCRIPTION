@@ -1,0 +1,23 @@
+Package: pksimhelper
+Type: Package
+Title: Helps Evaluating PKSim Exported Data
+Version: 0.1.0
+Author: Dominik Selzer <dominik.selzer@uni-saarland.de>
+uthors@R: person("Dominik", "Selzer", email = "ominik.selzer@uni-saarland.de",
+  role = c("aut", "cre"))
+Maintainer: Dominik Selzer <dominik.selzer@uni-saarland.de>
+Description: Package is part of the general-case workflow at the Clinical Pharmacy group at UdS Germany.
+License: GPL-3
+Encoding: UTF-8
+Depends: R (>= 3.6.0)
+LazyData: true
+Imports:
+  readxl,
+  units,
+  MESS,
+  dplyr,
+  jsonlite,
+  httr,
+  gplots,
+  plotrix,
+  data.table
