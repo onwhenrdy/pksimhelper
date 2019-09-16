@@ -8,3 +8,14 @@ addons:
   apt:
     packages:
       - libudunits2-dev
+
+
+r:
+ - release
+
+r_packages:
+  - covr
+
+# only report coverage after build is successful
+after_success:
+  - test $TRAVIS_R_VERSION_STRING = 'release' && Rscript -e 'covr::codecov()'
