@@ -268,7 +268,31 @@ interpol.profile <- function(in.profile,
 }
 
 
-calculate.auc <- function(profile, type = c("linear", "spline")) {
+.calculate_auc_linlog <- function(times, values) {
+
+  if (length(times) != length(values))
+    stop("Error: times and values must have the same length")
+
+  if (length(times) < 2)
+    return(0.)
+
+  auc = 0.
+
+  for (i in 2:length(times)) {
+    t1 <- times[i - 1]
+    t2 <- times[i]
+    c1 <- values[i - 1]
+    c2 <- values[i]
+    if (c1 > c2 && c2 > 0.)
+      auc <- auc + (c1 - c2) * (t2 - t1)/(log(c1) - log(c2))
+    else
+      auc <- auc + 0.5 * (c1 + c2) * (t2 - t1)
+  }
+
+  return(auc)
+}
+
+calculate.auc <- function(profile, type = c("linear", "linlog", "spline")) {
   type <- match.arg(type)
   if (!is.profile(profile)) {
     stop("Input must be of class profile")
@@ -281,7 +305,13 @@ calculate.auc <- function(profile, type = c("linear", "spline")) {
   time.unit <- profile$time.unit
   value.unit <- profile$value.unit
 
-  auc <- MESS::auc(profile$data$Time, profile$data$Avg, type = type)
+  if (type == "linear" || type == "spline") {
+    auc <- MESS::auc(profile$data$Time, profile$data$Avg, type = type)
+  }
+  else {
+    auc <- .calculate_auc_linlog(profile$data$Time, profile$data$Avg)
+  }
+
   units(auc) <- value.unit * time.unit
   return(auc)
 }
@@ -314,14 +344,19 @@ calculate.max <- function(profile) {
 calculate.all.pred.obs <- function(matched.list, obs.data, time.unit, value.unit,
                                    only.obs.times = F,
                                    interpol.method = c("linear", "spline"),
-                                   interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman")) {
+                                   interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
+                                   auc.method = c("linear", "linlog", "spline")) {
+
+  auc.method <- match.arg(auc.method)
+
   result <- data.frame()
   for (match in matched.list) {
     message(paste("Processing id <", match$id, ">"))
     tmp <- calculate.pred.obs(match, obs.data, time.unit, value.unit,
                               only.obs.times = only.obs.times,
                               interpol.method = interpol.method,
-                              interpol.spline.method = interpol.spline.method)
+                              interpol.spline.method = interpol.spline.method,
+                              auc.method = auc.method)
     result <- rbind(result, tmp)
   }
 
@@ -334,7 +369,11 @@ calculate.pred.obs <- function(matched, obs.data,
                                value.unit,
                                only.obs.times = F,
                                interpol.method = c("linear", "spline"),
-                               interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman")) {
+                               interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
+                               auc.method = c("linear", "linlog", "spline")) {
+
+  auc.method <- match.arg(auc.method)
+
   obs <- .gather.ids(obs.data, matched$obs.ids)
   if (length(obs) == 0) {
     stop(paste("Attention: Matched profiles with id < ", matched$id, "> do not have any observed data"))
@@ -371,8 +410,9 @@ calculate.pred.obs <- function(matched, obs.data,
     pred.max <- calculate.max(pro)
 
     obs.range <- range(od, range.type = "time")
-    obs.auc <- calculate.auc(od)
-    pred.auc <- calculate.auc(trim.time(pro, from = obs.range[1], to = obs.range[2]))
+    obs.auc <- calculate.auc(od, type = auc.method)
+    pred.auc <- calculate.auc(trim.time(pro, from = obs.range[1], to = obs.range[2]),
+                              type = auc.method)
 
     tmp.res <- data.frame(
       sim.id = matched$id,
