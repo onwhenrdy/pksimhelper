@@ -1,3 +1,135 @@
+
+####################################################
+# Input Helper
+####################################################
+
+#' Checks if Input is a Single String
+#'
+#' @param input The input that should be tested
+#' @param can.be.empty If the input (if string) is allowed to be empty.
+#' @param trim.check If the input (if string) should be trimmed before the check.
+#'
+#' @return True if the input is a single string of vector with a single string.
+#' Lists with one string element will return False.
+#'
+#' @family helper functions
+#'
+#' @export
+#'
+is_single_string <- function(input, can.be.empty = T, trim.check = T) {
+
+  is.single.str <- (is.character(input) && length(input) == 1)
+
+  if (trim.check)
+    input <- base::trimws(input)
+
+  return(is.single.str && (can.be.empty || nchar(input) > 0 ))
+}
+
+
+#' Checks if Input is a Single Logical Value
+#'
+#' @param input The input that should be tested
+#'
+#' @return True if the input is a single logical value. Lists with one logical value will return False.
+#' @export
+#'
+#' @family helper functions
+#'
+is_single_logical <- function(input) {
+
+  is.logical(input) && length(input) == 1 && !is.na(input)
+}
+
+
+#' Checks if Input is a Single Bumeric Value
+#'
+#' @param input The input that should be tested
+#'
+#' @return True if the input is a single numeric value. Lists with one numeric value will return False.
+#' @export
+#'
+#' @family helper functions
+#'
+is_single_numeric <- function(input) {
+
+  is.numeric(input) && length(input) == 1 && !is.na(input)
+}
+
+
+#' Tests if a Data Structure has Units Attached.
+#'
+#' @param input The data structure that should be tested.
+#'
+#' @return True if the data structure inherits from \code{units} (must use the \code{units} package).
+#' @export
+#'
+#' @family helper functions
+#'
+has_units <- function(input) {
+
+  if (length(input) == 0)
+    return(FALSE)
+
+  test_fn <- function(x) inherits(x, "units")
+  if (test_fn(input))
+    return(TRUE)
+
+  all(sapply(input, test_fn))
+}
+
+
+#' Tests if Input is a String or List-like Object of Strings
+#'
+#' @param vec The input object.
+#' @param string.like If input is allowed to be convertible to string for the test.
+#' @param can.be.empty If empty strings are allowed.
+#'
+#' @return True, if the input is a string or list-like object of strings, else False.
+#' @export
+#'
+#' @family helper functions
+#'
+is_string_list <- function(vec, string.like = F, can.be.empty = F) {
+
+  if (any(is.na(vec)))
+    return(F)
+
+  if (string.like)
+    vec <- paste(vec)
+
+  all(sapply(vec, is_single_string, can.be.empty = can.be.empty))
+}
+
+#' Checks if a String is a Valid Unit
+#'
+#' @param str The input string.
+#'
+#' @return True if a valid unit, else False.
+#' @export
+#'
+#' @family helper functions
+#'
+is_unit <- function(str) {
+
+  if (!is_single_string(str, can.be.empty = F))
+    return(F)
+
+  ok <- tryCatch({
+    units::as_units(str)
+    T
+  },
+  error = function(e) {
+    F
+  })
+  return(ok)
+}
+
+
+
+
+
+
 # checks if input is a single character vector
 .is.single.string <- function(input) {
 

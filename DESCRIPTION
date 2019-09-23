@@ -24,3 +24,11 @@ Imports:
 Suggests: 
     testthat (>= 2.1.0),
     covr
+RoxygenNote: 6.1.1
+Collate:
+    'helper.R'
+    'zzz.R'
+    'create.R'
+    'read.R'
+    'calculate.R'
+    'plots.R'

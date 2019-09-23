@@ -1,2 +1,4 @@
-
 exportPattern("^[[:alpha:]]+")
+
+S3method("print", master)
+S3method("print", molecule)
