@@ -115,15 +115,17 @@ plot.matched <- function(matched, obs.data,
 
   # average profile data
   for (i in 1:length(matched$profiles)) {
-    if (matched$profiles[[i]]$data.type == "individual")
       if (rm.zero.neg.rows) {
         tmp <- matched$profiles[[i]]$data
         matched$profiles[[i]]$data <- tmp[rowSums(tmp[-1] <= 0 ) == 0, ]
       }
-      matched$profiles[[i]] <- average.pop.profile(matched$profiles[[i]],
-                                                   avg.fn = avg.fn,
-                                                   min.var.fn = min.var.fn,
-                                                   max.var.fn = max.var.fn)
+
+      if (matched$profiles[[i]]$data.type == "individual") {
+        matched$profiles[[i]] <- average.pop.profile(matched$profiles[[i]],
+                                                     avg.fn = avg.fn,
+                                                     min.var.fn = min.var.fn,
+                                                     max.var.fn = max.var.fn)
+      }
   }
 
   # match units

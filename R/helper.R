@@ -119,10 +119,16 @@
 }
 
 .has.mol.unit <- function(unit) {
+  if (units::deparse_unit(unit) == "")
+    return(F)
+
   grepl("mol", tolower(units::deparse_unit(units::as_units(units(unit)$numerator))), fixed = TRUE)
 }
 
 .has.mass.unit <- function(unit) {
+  if (units::deparse_unit(unit) == "")
+    return(F)
+
   grepl("g", tolower(units::deparse_unit(units::as_units(units(unit)$numerator))), fixed = TRUE)
 }
 
