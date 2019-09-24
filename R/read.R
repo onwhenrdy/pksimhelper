@@ -722,9 +722,9 @@ read.sim.profiles.from.master <- function(master.data,
 
     # gather results for each molecule
     pro.results <- list()
-    for (i in 1:length(mols)) {
-      mol <- mols[[i]]
-      mol.i <- mol.infos[[i]]
+    for (j in 1:length(mols)) {
+      mol <- mols[[j]]
+      mol.i <- mol.infos[[j]]
       data <- data.frame(sheet_entry[, time.info$col], sheet_entry[, mol.i$cols], NA, NA)
       colnames(data) <- c("Time", "Avg", "Min", "Max")
 
@@ -744,7 +744,7 @@ read.sim.profiles.from.master <- function(master.data,
         reference = "",
         group = NA,
         time.unit = time.info$unit,
-        value.unit = mol.infos[[i]]$unit,
+        value.unit = mol.infos[[j]]$unit,
         data = data,
         type = "individual",
         data.type = "mean",
