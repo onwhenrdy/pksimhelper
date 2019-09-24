@@ -116,8 +116,14 @@ plot.matched <- function(matched, obs.data,
   # average profile data
   for (i in 1:length(matched$profiles)) {
       if (rm.zero.neg.rows) {
-        tmp <- matched$profiles[[i]]$data
-        matched$profiles[[i]]$data <- tmp[rowSums(tmp[-1] <= 0 ) == 0, ]
+        if (matched$profiles[[i]]$data.type == "individual") {
+          tmp <- matched$profiles[[i]]$data
+          matched$profiles[[i]]$data <- tmp[rowSums(tmp[-1] <= 0 ) == 0, ]
+        } else {
+          tmp <- matched$profiles[[i]]$data
+          row_sub = apply(tmp, 1, function(row) all(row > 0, na.rm = T))
+          matched$profiles[[i]]$data <- tmp[row_sub,]
+        }
       }
 
       if (matched$profiles[[i]]$data.type == "individual") {
@@ -211,6 +217,11 @@ plot.matched <- function(matched, obs.data,
   main = NA
   if (show.main)
     main <- matched$plot.infos$main
+
+  # HACK !!
+  if (rm.zero.neg.rows && ylim[1] < 0) {
+    ylim[1] = 1E-4
+  }
 
   plot.params <- list(1, type = "n", xlim = xlim, ylim = ylim, xlab = xlab, ylab = ylab, main = main)
   plot.params <- append(plot.params, main.plot.args)
