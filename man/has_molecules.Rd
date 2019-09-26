@@ -23,15 +23,14 @@ mol_1 <- molecule("Mol 1", MW = 100)
 mol_2 <- molecule("Mol 2", MW = 200)
 mol_list <- molecule_list(mol_1, mol_2)
 has_molecules(mol_list, c("Mol 1")) # TRUE
-has_molecules(mol_list, c("Mol 1", "Mol 2")) TRUE
-has_molecules(mol_list, c("Mol 3", "Mol 2")) FALSE
+has_molecules(mol_list, c("Mol 1", "Mol 2")) # TRUE
+has_molecules(mol_list, c("Mol 3", "Mol 2")) # FALSE
 
 }
 \seealso{
 Other molecule functions: \code{\link{is_molecule_list}},
   \code{\link{is_molecule}},
   \code{\link{is_unique_molecule_list}},
-  \code{\link{match_mol}}, \code{\link{match_pvb}},
   \code{\link{merge_molecule_lists}},
   \code{\link{molecule_from_ids}},
   \code{\link{molecule_ids}}, \code{\link{molecule_list}},

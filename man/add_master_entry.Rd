@@ -47,14 +47,14 @@ mol_1 <- molecule("Foo", MW = 100)
 mol_2 <- molecule("Bar", MW = 200)
 m <- master("Test", molecule_list(mol_1, mol_2), groups = 2) # master with 2 associated molecules
 
-m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1) # ok
-m <- add_master_entry(pop.name = "Pop 2", pop.molecules = molecule_list(mol_1, mol_2)) # ok
-# m <- add_master_entry(pop.name = "Pop 2", pop.molecules = NA) # error
-# m <- add_master_entry(pop.name = "Pop 2", pop.molecules = molecule("Unknown", MW = 10)) # error
+m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1) # ok
+m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = molecule_list(mol_1, mol_2)) # ok
+# m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = NA) # error
+# m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = molecule("Unknown", MW = 10)) # error
 
-m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", NA)) # ok only Group_1 is set
-m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo")) # ok both groups set
-# m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo", "Not in master")) # error
+m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", NA)) # ok only Group_1 is set
+m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo")) # ok both groups set
+# m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo", "Not in master")) # error
 
 m <- add_master_entry(m, plot.x.range = NA) # ok -> no limit
 m <- add_master_entry(m, plot.x.range = units::as_units(c(1,2), "h")) # ok upper and lower limit

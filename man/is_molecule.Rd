@@ -19,7 +19,6 @@ Checks if a Data Structure is a Molecule
 Other molecule functions: \code{\link{has_molecules}},
   \code{\link{is_molecule_list}},
   \code{\link{is_unique_molecule_list}},
-  \code{\link{match_mol}}, \code{\link{match_pvb}},
   \code{\link{merge_molecule_lists}},
   \code{\link{molecule_from_ids}},
   \code{\link{molecule_ids}}, \code{\link{molecule_list}},

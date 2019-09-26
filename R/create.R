@@ -76,35 +76,6 @@ fetch_properties_from_pubchem <- function(names_or_cids, features = c("Molecular
 # Molecule
 #################################################################################
 
-
-#' Escapes a Name in a Reg-exp Friendly Manner to Match a Molecule in a Compartment.
-#'
-#' @param name A non-empty string that should be escaped.
-#'
-#' @return An escapted name.
-#' @export
-#'
-#' @family molecule functions
-#'
-match_mol <- function(name) {
-  if (!is_single_string(name))
-    stop("name must be a single non-empty string")
-
-  return(paste0("\\|", name, "\\|"))
-}
-
-#' Returns a Match String for Peripheral Venous Blood
-#'
-#' @return An match string.
-#' @export
-#'
-#' @family molecule functions
-#'
-match_pvb <- function() {
-  return("PeripheralVenousBlood")
-}
-
-
 #' Creates a Molecule
 #'
 #' A molecule is a description of a measured entity from a PKSim/Mobi container.
@@ -597,14 +568,14 @@ is_master <- function(ds) {
 #' mol_2 <- molecule("Bar", MW = 200)
 #' m <- master("Test", molecule_list(mol_1, mol_2), groups = 2) # master with 2 associated molecules
 #'
-#' m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1) # ok
-#' m <- add_master_entry(pop.name = "Pop 2", pop.molecules = molecule_list(mol_1, mol_2)) # ok
-#' # m <- add_master_entry(pop.name = "Pop 2", pop.molecules = NA) # error
-#' # m <- add_master_entry(pop.name = "Pop 2", pop.molecules = molecule("Unknown", MW = 10)) # error
+#' m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1) # ok
+#' m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = molecule_list(mol_1, mol_2)) # ok
+#' # m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = NA) # error
+#' # m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = molecule("Unknown", MW = 10)) # error
 #'
-#' m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", NA)) # ok only Group_1 is set
-#' m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo")) # ok both groups set
-#' # m <- add_master_entry(pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo", "Not in master")) # error
+#' m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", NA)) # ok only Group_1 is set
+#' m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo")) # ok both groups set
+#' # m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo", "Not in master")) # error
 #'
 #' m <- add_master_entry(m, plot.x.range = NA) # ok -> no limit
 #' m <- add_master_entry(m, plot.x.range = units::as_units(c(1,2), "h")) # ok upper and lower limit
@@ -843,14 +814,14 @@ bind_master <- function(master, slave) {
 #'
 #' @examples
 #'
-#'mol_1 <- molecule("Foo", MW = 100)
-#'mol_2 <- molecule("Bar", MW = 200)
-#'mol_3 <- molecule("Baz", MW = 300)
-#'m <- master("master", molecules = molecule_list(mol_1, mol_2, mol_3), groups = 3)
-#'m <- add_master_entry(m, "Pop", mol_1, groups = c(NA, "AB", "B"))
-#'m <- add_master_entry(m, sim.name = "Sim", sim.molecules = mol_2, groups = c("C", "B", "B"))
-#'m <- add_master_entry(m, sim.name = "Sim 2", sim.molecules = mol_2, groups = c(NA, "AB", NA))
-#'m <- add_master_entry(m, sim.name = "Sim 3", sim.molecules = molecule_list(mol_1, mol_2), groups = c(NA, "AB", NA))
+#' mol_1 <- molecule("Foo", MW = 100)
+#' mol_2 <- molecule("Bar", MW = 200)
+#' mol_3 <- molecule("Baz", MW = 300)
+#' m <- master("master", molecules = molecule_list(mol_1, mol_2, mol_3), groups = 3)
+#' m <- add_master_entry(m, "Pop", mol_1, groups = c(NA, "AB", "B"))
+#' m <- add_master_entry(m, sim.name = "Sim", sim.molecules = mol_2, groups = c("C", "B", "B"))
+#' m <- add_master_entry(m, sim.name = "Sim 2", sim.molecules = mol_2, groups = c(NA, "AB", NA))
+#' m <- add_master_entry(m, sim.name = "Sim 3", sim.molecules = molecule_list(mol_1, mol_2), groups = c(NA, "AB", NA))
 #'
 #' filter_master(m, entries = c(1,4)) # filter for rows
 #' filter_master(m, group.fiter = list(Group_2 = "B", Group_3 = "B"), inv.group.filter = T) # filter inverse for groups
@@ -932,6 +903,8 @@ filter_master <- function(master.obj,
 #' @return Invisible copy of the object \code{x}.
 #'
 #' @family master functions
+#'
+#' @export
 #'
 #' @examples
 #' a <- master("Master 1")

@@ -1,13 +1,17 @@
 Package: pksimhelper
 Type: Package
-Title: Helps Evaluating PKSim Exported Data
+Title: Evaluate OSP-Suite Exported Data and Produce Publication-Quality Plots
+Description: The package is part of the OSP-Suite workflow at the Clinical Pharmacy group at UdS Germany.
+  You can use the functions of the package to evaluate and map observed data to individual 
+  and population simulations created with PKSim or Mobi.
 Version: 0.1.0
 Author: Dominik Selzer <dominik.selzer@uni-saarland.de>
-uthors@R: person("Dominik", "Selzer", email = "ominik.selzer@uni-saarland.de",
+uthors@R: person("Dominik", "Selzer", email = "dominik.selzer@uni-saarland.de",
   role = c("aut", "cre"))
 Maintainer: Dominik Selzer <dominik.selzer@uni-saarland.de>
-Description: Package is part of the general-case workflow at the Clinical Pharmacy group at UdS Germany.
-License: GPL-3
+URL: https://github.com/onwhenrdy/pksimhelper
+BugReports: https://github.com/onwhenrdy/pksimhelper/issues
+License: GPL-3 | file LICENSE
 Encoding: UTF-8
 Depends: R (>= 3.6.0)
 LazyData: true
