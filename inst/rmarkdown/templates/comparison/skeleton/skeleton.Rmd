@@ -1,0 +1,239 @@
+---
+title: "PKSH Model Comparison"
+subtitle: "Project Foo"
+author: "Dominik Selzer <dominik.selzer@uni-saarland.de>"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_depth: 2
+    toc_float: false
+params:
+  work.dir: !r "here::here()"
+  models: ["Model 1", "Model 4"]
+  show_settings: true
+  show_individuals_lin: true
+  show_individuals_log: true
+  show_pred_obs: true
+  show_metrics: true
+  show_gof: true
+  metrics: ["GMFE", "MRD", "MAE", "MdAE", "MAPE", "Zeta"]
+  max_pic_size: 890
+  use_tabs: false
+---
+
+<br/>
+
+```{r, echo = F, error = T}
+knitr::knit_hooks$set(
+   error = function(x, options) {
+     paste('\n\n<div class="alert alert-danger">',
+           gsub('##', '\n', gsub('^##\ Error', '**Error**', x)),
+           '</div>', sep = '\n')
+   },
+   warning = function(x, options) {
+     paste('\n\n<div class="alert alert-warning">',
+           gsub('##', '\n', gsub('^##\ Warning:', '**Warning**', x)),
+           '</div>', sep = '\n')
+   },
+   message = function(x, options) {
+     paste('\n\n<div class="alert alert-info">',
+           gsub('##', '\n', x),
+           '</div>', sep = '\n')
+   }
+)
+```
+
+<!-- Tests and Globals -->
+```{r, echo = F, error = T}
+work.dir <- params$work.dir
+PAGE.WITH <- as.numeric(params$max_pic_size)
+
+# check for working dir
+if (!file.exists(work.dir)) {
+  knitr::knit_exit()
+  stop(paste0("work.dir '", work.dir, "' does not exist"))
+}
+
+# check if at least one model was selected
+model.dirs <- params$models
+model.dirs <- model.dirs[!is.null(model.dirs) || !is.na(model.dirs)]
+if (length(model.dirs) == 0) {
+  knitr::knit_exit()
+  stop("No model was set for evaluation")
+}
+
+if (length(model.dirs) > 4) {
+  knitr::knit_exit()
+  stop("The comparison of more than 4 models is not supported")
+}
+
+# check for model folders and pksh_eval.json
+# all data that we need is now in model.data !!
+model.dirs <- file.path(work.dir, model.dirs)
+model.data <- list()
+for (d in model.dirs) {
+  if (!file.exists(d)) {
+     knitr::knit_exit()
+     stop(paste0("Model directory '", d, "' does not exist"))
+  }
+  
+  meta.file <- file.path(d, "pksh_eval.json")
+  if (!file.exists(meta.file)) {
+    stop(paste0("pksh_eval.json in directory '", d, "' does not exist"))
+  } else {
+    meta.entry <- list(path = d,
+                       meta = jsonlite::read_json(file.path(d, "pksh_eval.json")))
+    model.data <- c(model.data, list(meta.entry))
+  }
+}
+
+tabs <- if (params$use_tabs) "{.tabset}" else ""
+```
+
+```{r, echo = F, error = T}
+```
+
+```{r echo = F, results = 'asis', error = T}
+if (params$show_settings) {
+  cat("***\n")
+  cat("# Settings")
+  
+  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
+  model_paths <- sapply(model.data, function(x) x$path, simplify = T)
+  row.names <- c("Workding dir", paste("Model", 1:length(model.data))) 
+  settings.table <- data.frame(keys = row.names,
+                               names = c(" ", model_names),
+                               paths = c(work.dir, model_paths))
+  knitr::kable(settings.table, col.names = c("Key", "Name", "Path"))
+}
+```
+
+
+```{r echo = F, results = 'asis', error=T}
+if (params$show_individuals_lin || params$show_individuals_log) {
+  cat("***\n")
+  cat("# Individual Time Profiles \n")
+  
+  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
+
+  profile_names <- names(model.data[[1]]$meta$individuals)
+  if (length(profile_names) == 0)
+    stop("No individual profiles found")
+  
+  pic_size <- floor(PAGE.WITH / length(model.data))
+  
+  for (profile in profile_names) {
+    cat(sprintf("## %s %s \n\n", profile, tabs))
+    cat(paste("Comparing __", paste(model_names, collapse = "__ vs __"), "__\n\n", sep = ""))
+    
+    if (params$show_individuals_lin) {
+      cat("### Linear \n\n")
+      for (i in 1:length(model.data)) {
+        tmp_data <- model.data[[i]]$meta
+        lin_file <- file.path(model.data[[i]]$path, tmp_data$individual[[profile]]$lin[[1]])
+        cat(sprintf('![](%s){ width=%ipx }', URLencode(lin_file), pic_size), sep = '\n\n')  
+      }
+      cat("<br/>\n\n")
+    }
+    
+    if (params$show_individuals_log) {
+      cat("### Logarithmic \n\n")
+      for (i in 1:length(model.data)) {
+        tmp_data <- model.data[[i]]$meta
+        log_file <- file.path(model.data[[i]]$path, tmp_data$individual[[profile]]$log[[1]])
+        cat(sprintf('![](%s){ width=%ipx }', URLencode(log_file), pic_size), sep = '\n\n') 
+      }
+      cat("<br/>\n\n")
+    }
+  }
+}
+```
+
+```{r echo = F, results = 'asis'}
+if (params$show_pred_obs) {
+  cat("***\n")
+  cat("# Prediction vs. Overved Plots")
+}
+```
+
+```{r echo = F, results = 'asis'}
+if (params$show_gof) {
+  cat("***\n")
+  cat(paste("# GoF Plots", tabs, "\n"))
+
+  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
+  
+  pic_size <- floor(PAGE.WITH / length(model.data))
+  
+  # cmax
+  cat("## Cmax\n\n")
+  cat(paste("Comparing __", paste(model_names, collapse = "__ vs __"), "__\n\n", sep = ""))
+  
+  for (i in 1:length(model.data)) {
+    tmp_data <- model.data[[i]]$meta
+    file <- file.path(model.data[[i]]$path, tmp_data$gof$c_max[[1]])
+    cat(sprintf('![](%s){ width=%ipx }', URLencode(file), pic_size), sep = '\n\n')  
+  }
+  cat("<br/>\n\n")
+  
+  # AUC
+  cat("## AUC\n\n")
+  cat(paste("Comparing __", paste(model_names, collapse = "__ vs __"), "__\n\n", sep = ""))
+  
+  for (i in 1:length(model.data)) {
+    tmp_data <- model.data[[i]]$meta
+    file <- file.path(model.data[[i]]$path, tmp_data$gof$auc[[1]])
+    cat(sprintf('![](%s){ width=%ipx }', URLencode(file), pic_size), sep = '\n\n')  
+  }
+  cat("<br/>\n\n")
+}
+```
+
+```{r echo = F, results = 'asis'}
+if (params$show_metrics) {
+  cat("***\n")
+  cat(paste("# Metrics", tabs, "\n"))
+  
+  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
+
+  all_data <- list()
+  for (i in 1:length(model.data)) {
+    tmp_data <- model.data[[i]]$meta
+    file <- file.path(model.data[[i]]$path, tmp_data$cor_stats[[1]])
+    data <- read.table(file, header = T, sep = "\t")
+    
+    if (length(params$metrics) != 1 || tolower(params$metrics[1]) != "all") {
+      data <- data[params$metrics]
+    }
+    
+    tmp <- as.data.frame(t(data))
+    tmp <- tmp[-1,]
+    all_data[[i]] <- tmp 
+  }
+
+  combined <- do.call("cbind", all_data)
+  # remove a couple of not really interesting metrics
+  cmax <- combined[seq(1, by = 3, length.out = length(model_names))]
+  colnames(cmax) <- model_names
+  
+  auc <- combined[seq(3, by = 3, length.out = length(model_names))]
+  colnames(auc) <- model_names
+}
+```
+```{r echo = F, results = 'asis'}
+if (params$show_metrics) {
+  cat("## Cmax\n\n")
+  knitr::kable(cmax)
+}
+``` 
+
+```{r echo = F, results = 'asis'}
+if (params$show_metrics) {
+  cat("## AUC\n\n")
+  knitr::kable(auc)
+}
+``` 
+
+
