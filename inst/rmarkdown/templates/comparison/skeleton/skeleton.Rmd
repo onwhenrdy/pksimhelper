@@ -209,7 +209,6 @@ if (params$show_metrics) {
     }
     
     tmp <- as.data.frame(t(data))
-    tmp <- tmp[-1,]
     all_data[[i]] <- tmp 
   }
 
