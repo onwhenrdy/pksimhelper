@@ -4,6 +4,7 @@ R Tools for the Evaluation of PBPK Models via PKSim
 <!-- badges: start -->
 [![Travis build status](https://travis-ci.org/onwhenrdy/pksimhelper.svg?branch=master)](https://travis-ci.org/onwhenrdy/pksimhelper)
 [![Codecov test coverage](https://codecov.io/gh/onwhenrdy/pksimhelper/branch/master/graph/badge.svg)](https://codecov.io/gh/onwhenrdy/pksimhelper?branch=master)
+[![Lifecycle badge](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
 
