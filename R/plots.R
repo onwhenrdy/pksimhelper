@@ -348,6 +348,97 @@ gof.plot <- function(pred.obs.data, value.lab,
                    bty = "n",cex = legend.cex)
 }
 
+pred_obs_plot <- function(pred.obs.data,
+                     value.lab = "Concentration",
+                     lwd = 1,
+                     group_by = "ref",
+                     match_by = NA,
+                     match = NA,
+                     col = NA,
+                     pch = NA,
+                     nice.min = T,
+                     nice.max = T,
+                     legend.cex = 1.25,
+                     show.two.fold = F,
+                     show.1.25.fold = F,
+                     ...) {
+
+  data <- pred.obs.data$data
+  if (!is.na(match[1]) && !is.na(match_by[1])) {
+    data <- data %>% dplyr::filter(.[[match_by]] == match)
+  }
+
+  if (nrow(data) == 0) {
+    stop("pred.obs.data has not data attached or filter did not match")
+  }
+
+  data <- dplyr::select(data, "Pred", "Obs", group_by)
+  range <- range(data[1:2])
+  if (nice.min) {
+    range[1] <- 10^floor(log10(range[1]))
+  }
+
+  if (nice.max) {
+    range[2] <- 10^ceiling(log10(range[2]))
+  }
+
+  unit <- pred.obs.data$meta$value.unit
+
+  lab_unit <- units::make_unit_label("", unit, parse = T)
+  ylab <- substitute(a ~ b ~ c, lapply(list(a = "Predicted",
+                                            b = value.lab,
+                                            c = lab_unit), "[[", 1))
+
+  xlab <- substitute(a ~ b ~ c, lapply(list(a = "Observed",
+                                            b = value.lab,
+                                            c = lab_unit), "[[", 1))
+  # base plot
+  graphics::plot(1, log = "xy", type = "n",
+                 ylab = ylab,
+                 xlab = xlab,
+                 xlim = range,
+                 ylim = range,
+                 yaxt = "n",
+                 xaxt = "n",
+                 ...)
+  .minor.tick.log.axis("x", range, ...)
+  .minor.tick.log.axis("y", range, ...)
+
+  # ident line plus 2- and 1.25-fold range (optional)
+  graphics::abline(0, 1, lwd = lwd)
+  if (show.two.fold) {
+    graphics::abline(0 , 2, lty = 2, untf = T, lwd = lwd)
+    graphics::abline(0 , 0.5, lty = 2, untf = T, lwd = lwd)
+  }
+
+  if (show.1.25.fold) {
+    graphics::abline(0, 1.25, lty = 3, untf = T, lwd = lwd)
+    graphics::abline(0, 1/1.25, lty = 3, untf = T, lwd = lwd)
+  }
+
+  groups <- dplyr::pull(unique(data[3]))
+  n.groups <- length(groups)
+
+  if (length(col) <= 1 && is.na(col))
+    col <- seq(from = 1, length.out = n.groups)
+
+  if (length(pch) <= 1 && is.na(pch))
+    pch <- seq(from = 15, length.out = n.groups)
+
+  i <- 1
+  cex <- unlist(list(...)["cex"])
+  cex <- if (is.null(cex)) 1.0 else cex
+  for (group in groups) {
+    subset <- data %>% dplyr::filter(.[[group_by]] == group)
+    graphics::points(subset$Obs, subset$Pred, pch = pch[i], col = col[i], cex = cex)
+    i <- i + 1
+  }
+
+  graphics::legend("topleft", col = col, pch = pch, legend = groups,
+                   bty = "n",cex = legend.cex)
+}
+
+
 axis.labels <- function(profile,
                         x.prefix = "Time",
                         y.prefix = "Concentration") {

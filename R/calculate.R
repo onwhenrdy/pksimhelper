@@ -340,6 +340,77 @@ calculate.max <- function(profile) {
   return(list(t.max = t.max, value.max = v.max))
 }
 
+all_pred_vs_obs <- function(matched.list, obs.data,
+                            time.unit, value.unit,
+                            interpol.method = c("linear", "spline"),
+                            interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
+                            auc.method = c("linear", "linlog", "spline")) {
+
+  results <- list(meta = list(time.unit = time.unit, value.unit = value.unit),
+                  data = data.frame())
+
+  for (match in matched.list) {
+    message(paste("Processing id <", match$id, ">"))
+    tmp <- pred_vs_obs(match, obs.data, time.unit, value.unit,
+                              interpol.method = interpol.method,
+                              interpol.spline.method = interpol.spline.method)
+    results$data <- rbind(results$data, tmp$data)
+  }
+
+  return(results)
+}
+
+
+pred_vs_obs <- function(matched, obs.data,
+                        time.unit,
+                        value.unit,
+                        interpol.method = c("linear", "spline"),
+                        interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman")) {
+
+  obs <- .gather.ids(obs.data, matched$obs.ids)
+
+  results <- list(meta = list(time.unit = time.unit, value.unit = value.unit),
+                  data = data.frame())
+  for (pro in matched$profiles) {
+    pro.mol <- pro$molecule
+    match <- NA
+    for (od in obs) {
+      if (od$molecule$id == pro.mol$id) {
+        match <- od
+        break
+      }
+    }
+
+    if (!is.profile(match)) {
+      message(paste("Unexpected molecule mismatch in < ", matched$id, ">"))
+      next
+    }
+
+    pro <- convert.profile(pro, time.unit = time.unit, value.unit = value.unit)
+    od <- convert.profile(od, time.unit = time.unit, value.unit = value.unit)
+
+    pro <- interpol.profile(pro, od,
+                            method = interpol.method,
+                            spline.method = interpol.spline.method,
+                            only.pattern.times = T)
+
+    result_df <- data.frame(Time = pro$data$Time,
+                            Pred = pro$data$Avg,
+                            Obs = od$data$Avg,
+                            sim.id = matched$id,
+                            exp.id = od$id,
+                            group = od$group,
+                            ref = od$reference,
+                            mol.name = pro.mol$name,
+                            mol.id = pro.mol$id)
+
+    results$data <- rbind(results$data, result_df)
+  }
+
+  return(results)
+}
+
+
 
 calculate.all.pred.obs <- function(matched.list, obs.data, time.unit, value.unit,
                                    only.obs.times = F,

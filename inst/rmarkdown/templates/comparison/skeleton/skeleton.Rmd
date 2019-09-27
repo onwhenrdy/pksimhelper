@@ -11,16 +11,16 @@ output:
     toc_float: false
 params:
   work.dir: !r "here::here()"
-  models: ["Model 1", "Model 4"]
+  models: ["Model 1", "Model 2"]
   show_settings: true
   show_individuals_lin: true
   show_individuals_log: true
   show_pred_obs: true
   show_metrics: true
   show_gof: true
-  metrics: ["GMFE", "MRD", "MAE", "MdAE", "MAPE", "Zeta"]
+  metrics: ["MRD", "GMFE", "MAE", "MdAE", "MAPE", "Zeta"]
   max_pic_size: 890
-  use_tabs: false
+  use_tabs: true
 ---
 
 <br/>
@@ -90,18 +90,42 @@ for (d in model.dirs) {
 }
 
 tabs <- if (params$use_tabs) "{.tabset}" else ""
+PIC_SIZE <- floor(PAGE.WITH / length(model.data))
 ```
 
-```{r, echo = F, error = T}
+<!-- Helpers -->
+```{r, echo = F, results = 'asis', error = T}
+###########################################################################################
+# Helper functions
+suppressMessages(library(tidyverse))
+
+plot_image <- function(file.name, model_name) {
+  
+  if (length(file.name) == 0 || !file.exists(file.name)) {
+    plot.new()
+    image(matrix(PIC_SIZE, PIC_SIZE), col = "white", axes = F)
+    text(x = 0.5, y = 0, paste("Plot for", model_name, "is missing"), col = "red")
+  }
+  else { 
+    cat(sprintf('![](%s){ width=%ipx }', URLencode(file.name), PIC_SIZE), sep = '\n\n')
+    cat("  ")
+  }  
+}
+
+get_model_names <- function(data) sapply(data, function(x) x$meta$model_name[[1]], simplify = T)
+get_model_paths <- function(data) sapply(data, function(x) x$path, simplify = T)
+print_comp_phrase <- function(names) cat(paste("Comparing __", paste(names, collapse = "__ vs __"), "__\n\n", sep = ""))
+
+###########################################################################################
 ```
 
 ```{r echo = F, results = 'asis', error = T}
 if (params$show_settings) {
-  cat("***\n")
   cat("# Settings")
   
-  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
-  model_paths <- sapply(model.data, function(x) x$path, simplify = T)
+  model_names <- get_model_names(model.data)
+  model_paths <- get_model_paths(model.data)
+  
   row.names <- c("Workding dir", paste("Model", 1:length(model.data))) 
   settings.table <- data.frame(keys = row.names,
                                names = c(" ", model_names),
@@ -111,29 +135,29 @@ if (params$show_settings) {
 ```
 
 
-```{r echo = F, results = 'asis', error=T}
+```{r echo = F, results = 'asis', error=T, out.width= PIC_SIZE, out.height= PIC_SIZE}
 if (params$show_individuals_lin || params$show_individuals_log) {
-  cat("***\n")
   cat("# Individual Time Profiles \n")
   
-  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
-
-  profile_names <- names(model.data[[1]]$meta$individuals)
-  if (length(profile_names) == 0)
+  model_names <- get_model_names(model.data)
+  model_paths <- get_model_paths(model.data)
+  profile_names <- model.data %>% purrr::map(function(x) names(x$meta$individuals)) %>% unlist() %>% unique()
+    
+  if (length(profile_names) == 0) {
+    knitr::knit_exit()
     stop("No individual profiles found")
-  
-  pic_size <- floor(PAGE.WITH / length(model.data))
+  }
   
   for (profile in profile_names) {
     cat(sprintf("## %s %s \n\n", profile, tabs))
-    cat(paste("Comparing __", paste(model_names, collapse = "__ vs __"), "__\n\n", sep = ""))
+    print_comp_phrase(model_names)
     
     if (params$show_individuals_lin) {
       cat("### Linear \n\n")
       for (i in 1:length(model.data)) {
         tmp_data <- model.data[[i]]$meta
-        lin_file <- file.path(model.data[[i]]$path, tmp_data$individual[[profile]]$lin[[1]])
-        cat(sprintf('![](%s){ width=%ipx }', URLencode(lin_file), pic_size), sep = '\n\n')  
+        lin_file <- file.path(model_paths[i], tmp_data$individual[[profile]]$lin[[1]])
+        plot_image(lin_file, model_names[i])
       }
       cat("<br/>\n\n")
     }
@@ -142,8 +166,9 @@ if (params$show_individuals_lin || params$show_individuals_log) {
       cat("### Logarithmic \n\n")
       for (i in 1:length(model.data)) {
         tmp_data <- model.data[[i]]$meta
-        log_file <- file.path(model.data[[i]]$path, tmp_data$individual[[profile]]$log[[1]])
-        cat(sprintf('![](%s){ width=%ipx }', URLencode(log_file), pic_size), sep = '\n\n') 
+        log_file <- file.path(model_paths[i], tmp_data$individual[[profile]]$log[[1]])
+        plot_image(log_file, model_names[i])
+
       }
       cat("<br/>\n\n")
     }
@@ -151,30 +176,48 @@ if (params$show_individuals_lin || params$show_individuals_log) {
 }
 ```
 
-```{r echo = F, results = 'asis'}
+```{r echo = F, results = 'asis', error=T, out.width= PIC_SIZE, out.height= PIC_SIZE}
 if (params$show_pred_obs) {
-  cat("***\n")
-  cat("# Prediction vs. Overved Plots")
+  cat(sprintf("# Prediction vs. Overved Plots %s \n\n", tabs))
+
+  model_names <- get_model_names(model.data)
+  model_paths <- get_model_paths(model.data)
+  
+  pred_obs_names <- model.data %>% purrr::map(function(x) names(x$meta$pred_obs)) %>% unlist() %>% unique()
+  if (length(pred_obs_names) == 0) {
+    knitr::knit_exit()
+    stop("No prediction vs observed files found")
+  }
+  
+   for (pred_obs in pred_obs_names) {
+    cat(sprintf("## %s \n\n", pred_obs))
+    print_comp_phrase(model_names)
+    
+    for (i in 1:length(model.data)) {
+      tmp_data <- model.data[[i]]$meta
+      file <- file.path(model_paths[i], tmp_data$pred_obs[[pred_obs]][[1]])
+      plot_image(file, model_names[i])
+    }
+    cat("<br/>\n\n")
+   }
 }
 ```
 
-```{r echo = F, results = 'asis'}
+```{r echo = F, results = 'asis', out.width= PIC_SIZE, out.height= PIC_SIZE}
 if (params$show_gof) {
-  cat("***\n")
   cat(paste("# GoF Plots", tabs, "\n"))
 
-  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
-  
-  pic_size <- floor(PAGE.WITH / length(model.data))
-  
+  model_names <- get_model_names(model.data)
+  model_paths <- get_model_paths(model.data)
+
   # cmax
   cat("## Cmax\n\n")
-  cat(paste("Comparing __", paste(model_names, collapse = "__ vs __"), "__\n\n", sep = ""))
+  print_comp_phrase(model_names)
   
   for (i in 1:length(model.data)) {
     tmp_data <- model.data[[i]]$meta
-    file <- file.path(model.data[[i]]$path, tmp_data$gof$c_max[[1]])
-    cat(sprintf('![](%s){ width=%ipx }', URLencode(file), pic_size), sep = '\n\n')  
+    file <- file.path(model_paths[i], tmp_data$gof$c_max[[1]])
+    plot_image(file, model_names[i])
   }
   cat("<br/>\n\n")
   
@@ -184,19 +227,19 @@ if (params$show_gof) {
   
   for (i in 1:length(model.data)) {
     tmp_data <- model.data[[i]]$meta
-    file <- file.path(model.data[[i]]$path, tmp_data$gof$auc[[1]])
-    cat(sprintf('![](%s){ width=%ipx }', URLencode(file), pic_size), sep = '\n\n')  
+    file <- file.path(model_paths[i], tmp_data$gof$auc[[1]])
+    plot_image(file, model_names[i])
   }
   cat("<br/>\n\n")
 }
 ```
 
-```{r echo = F, results = 'asis'}
+```{r echo = F, results = 'asis', out.width= PIC_SIZE, out.height= PIC_SIZE}
 if (params$show_metrics) {
-  cat("***\n")
   cat(paste("# Metrics", tabs, "\n"))
   
-  model_names <- sapply(model.data, function(x) x$meta$model_name[[1]], simplify = T)
+  model_names <- get_model_names(model.data)
+  model_paths <- get_model_paths(model.data)
 
   all_data <- list()
   for (i in 1:length(model.data)) {
@@ -221,6 +264,7 @@ if (params$show_metrics) {
   colnames(auc) <- model_names
 }
 ```
+
 ```{r echo = F, results = 'asis'}
 if (params$show_metrics) {
   cat("## Cmax\n\n")
