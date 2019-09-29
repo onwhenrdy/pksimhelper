@@ -1320,11 +1320,11 @@ print.master <- function(x, details = F, max = NA, ...) {
   cat(paste("Entries:\t", nrow(x$data), "\n"))
 
   if (details) {
-    print(x$data, row.names = F, n = max * ncol(x$data))
+    print(x$data, row.names = F, n = max)
   }
   else {
     dat <- x$data[,1:(8 + length(x$group.names))]
-    print(dat, row.names = F, n = max * ncol(dat))
+    print(dat, row.names = F, n = max)
   }
 
   invisible(x)
