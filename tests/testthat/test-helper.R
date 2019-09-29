@@ -1,7 +1,4 @@
-
-###########################################################################
-# Input Helper - is_single_string
-###########################################################################
+################### is_single_string ###################
 
 test_that("is_single_string works for single strings", {
 
@@ -27,6 +24,9 @@ test_that("is_single_string works for NA and NULL", {
 
   expect_false(is_single_string(NULL))
   expect_false(is_single_string(NA))
+  expect_false(is_single_string(NA_character_))
+  expect_false(is_single_string(NA_complex_))
+  expect_false(is_single_string(NA_real_))
 })
 
 test_that("is_single_string works for not-empty-allowed", {
@@ -37,10 +37,7 @@ test_that("is_single_string works for not-empty-allowed", {
   expect_false(is_single_string(" ", can.be.empty = F, trim.check = T))
 })
 
-
-###########################################################################
-# Input Helper - is_single_logical
-###########################################################################
+################### is_single_logical ###################
 
 test_that("is_single_logical works for one logical input", {
 
@@ -63,6 +60,9 @@ test_that("is_single_logical works for NULL and NA", {
 
   expect_false(is_single_logical(NA))
   expect_false(is_single_logical(NULL))
+  expect_false(is_single_logical(NA_character_))
+  expect_false(is_single_logical(NA_complex_))
+  expect_false(is_single_logical(NA_integer_))
 })
 
 test_that("is_single_logical works for vectors and lists", {
@@ -73,10 +73,7 @@ test_that("is_single_logical works for vectors and lists", {
   expect_true(is_single_logical(c(T)))
 })
 
-
-###########################################################################
-# Input Helper - is_single_numeric
-###########################################################################
+################### is_single_numeric ###################
 
 test_that("is_single_numeric works for one numeric input", {
 
@@ -98,6 +95,10 @@ test_that("is_single_logical works for NULL and NA", {
 
   expect_false(is_single_numeric(NA))
   expect_false(is_single_numeric(NULL))
+  expect_false(is_single_numeric(NA_character_))
+  expect_false(is_single_numeric(NA_complex_))
+  expect_false(is_single_numeric(NA_integer_))
+  expect_false(is_single_numeric(NA_real_))
 })
 
 test_that("is_single_numeric works for vectors and lists", {
@@ -108,9 +109,7 @@ test_that("is_single_numeric works for vectors and lists", {
   expect_true(is_single_numeric(c(1)))
 })
 
-###########################################################################
-# Input Helper - has_units
-###########################################################################
+################### has_units ###################
 
 test_that("has_units works for units", {
 
@@ -145,10 +144,7 @@ test_that("has_units works for NA and NULL", {
   expect_false(has_units(NULL))
 })
 
-
-###########################################################################
-# is_string_list
-###########################################################################
+################### is_string_list ###################
 
 test_that("is_string_list works for valid input", {
 
@@ -180,10 +176,7 @@ test_that("is_string_list works for invalid input", {
   expect_false(is_string_list(list(1.2, 5)))
 })
 
-###########################################################################
-# is_unit
-###########################################################################
-
+################### is_unit ###################
 
 test_that("is_unit works", {
 
@@ -194,4 +187,45 @@ test_that("is_unit works", {
   expect_false(is_unit(" "))
   expect_false(is_unit(list()))
   expect_false(is_unit(c("m", "sec")))
+})
+
+################### is_dose_unit ###################
+
+test_that("is_dose_unit works", {
+
+  expect_true(is_dose_unit("kg"))
+  expect_true(is_dose_unit("µg"))
+  expect_true(is_dose_unit("mg"))
+  expect_true(is_dose_unit("ng"))
+  expect_true(is_dose_unit("g"))
+  expect_true(is_dose_unit("pg"))
+  expect_true(is_dose_unit("kg"))
+  expect_false(is_dose_unit("m/s"))
+  expect_false(is_dose_unit("Foo"))
+  expect_false(is_dose_unit(""))
+  expect_false(is_dose_unit(" "))
+  expect_false(is_dose_unit(list()))
+  expect_false(is_dose_unit(c("m", "sec")))
+})
+
+
+################### has_dose ###################
+
+test_that("has_dose works", {
+
+  expect_true(has_dose(units::as_units(12, "mg"))) # true
+  expect_true(has_dose(units::as_units(12.4, "µg"))) # true
+  expect_false(has_dose(units::as_units(12.4, "m"))) # false
+  expect_false(has_dose(12.4)) # false
+})
+
+
+################### to_range ###################
+
+test_that("to_range works", {
+
+  expect_equal(to_range(NA_real_, NA_real_, NA), c(NA_real_, NA_real_)) # will return c(NA, NA)
+  expect_equal(to_range(NA, 1, "mg"), units::as_units(c(NA, 1), "mg"))
+  expect_equal(to_range(NA, "1", "mg"), units::as_units(c(NA, 1), "mg"))
+  expect_error(to_range(1, NA, NA)) # error
 })

@@ -16,12 +16,19 @@ Encoding: UTF-8
 Depends: R (>= 3.6.0)
 LazyData: true
 Imports:
+  tidyr,
+  dplyr,
+  readr,
+  httr,
+  stringr,
+  purrr,
   readxl,
+  magrittr,
+  stringr,
+  tibble,
   units,
   MESS,
-  dplyr,
   jsonlite,
-  httr,
   gplots,
   plotrix,
   data.table
@@ -33,6 +40,7 @@ Collate:
     'helper.R'
     'zzz.R'
     'create.R'
+    'parser.R'
     'read.R'
     'calculate.R'
     'plots.R'

@@ -4,32 +4,43 @@
 \alias{print.master}
 \title{Prints Information about a Master Object}
 \usage{
-\method{print}{master}(x, details = F, max = NA)
+\method{print}{master}(x, details = F, max = NA, ...)
 }
 \arguments{
 \item{x}{The Master object.}
 
 \item{details}{True if all details should be printed, else False.}
 
-\item{max}{Maximum number of data rows to print. If \code{max = NA} (default) the number of entries that are printed
-is \code{getOption("max.print")/ncol(data)} for detailed print and the number of rows printed is 10 for non-detailed print.}
+\item{max}{Maximum number of data rows to print. If `max = NA` (default)
+ the number of entries that are printed
+is `getOption("max.print")/ncol(data)`
+for detailed print and the number of rows printed is 10 for non-detailed print.}
+
+\item{...}{Further arguments passed to or from other methods.}
 }
 \value{
-Invisible copy of the object \code{x}.
+Invisible copy of the object `x`.
 }
 \description{
 Prints Information about a Master Object
 }
 \examples{
-a <- master("Master 1")
+a <- master("Master 1", molecules = molecule("Test", MW = 100))
 a # prints a without details
-print(a, details = T) # prints a with details
+print(a, details = TRUE) # prints a with details
 print(a, max = 5) # prints a without details and maximum of 5 data rows
 
 }
 \seealso{
-Other master functions: \code{\link{add_master_entry}},
-  \code{\link{bind_master}}, \code{\link{filter_master}},
-  \code{\link{is_master}}, \code{\link{master}}
+Other master functions: \code{\link{[.master}},
+  \code{\link{add_master_entry}},
+  \code{\link{bind_master}}, \code{\link{entry.default}},
+  \code{\link{entry.master}}, \code{\link{entry}},
+  \code{\link{filter_master}},
+  \code{\link{groups.default}},
+  \code{\link{groups.master}}, \code{\link{groups}},
+  \code{\link{is_masterEntry_list}},
+  \code{\link{is_masterEntry}}, \code{\link{is_master}},
+  \code{\link{master}}
 }
 \concept{master functions}

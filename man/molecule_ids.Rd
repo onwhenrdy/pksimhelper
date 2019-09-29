@@ -2,7 +2,7 @@
 % Please edit documentation in R/create.R
 \name{molecule_ids}
 \alias{molecule_ids}
-\title{Returns a vector of Molecule Ids from a Molecule List}
+\title{Returns a Vector of Molecule Ids from a Molecule List}
 \usage{
 molecule_ids(mol.list)
 }
@@ -10,10 +10,10 @@ molecule_ids(mol.list)
 \item{mol.list}{A non-empty molecule list}
 }
 \value{
-A vector of molecule Ids
+A vector of molecule Ids.
 }
 \description{
-Returns a vector of Molecule Ids from a Molecule List
+Returns a Vector of Molecule Ids from a Molecule List
 }
 \examples{
 

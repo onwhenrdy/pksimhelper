@@ -10,7 +10,7 @@ is_unique_molecule_list(mol.list)
 \item{mol.list}{The molecule list that should be tested.}
 }
 \value{
-True, if the molecule list is unique, else False.
+`TRUE`, if the molecule list is unique, else `FALSE`.
 }
 \description{
 Checks if a Molecule List has Unique Ids

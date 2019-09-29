@@ -12,43 +12,56 @@ molecule(name, display.name = name, id = name, container = NA,
 \arguments{
 \item{name}{The name of the molecule (must be a single non-empty string).}
 
-\item{display.name}{The name that should be displayed in plots (e.g. in the legend). Must be a single non-empty string.}
+\item{display.name}{The name that should be displayed in plots (e.g. in the legend). Must be
+a single non-empty string.}
 
 \item{id}{A unique id for the Molecule. Must be a single value that will be converted to string.}
 
-\item{container}{A single non-empty string or NA that defines the model container the molecule is simulated.}
+\item{container}{A single non-empty string or NA that defines the model container the molecule
+is simulated.}
 
 \item{column.matcher}{Strings that match the Molecule for the parser functions (AND relationship).
 Must be a vector/single value of non-empty strings.}
 
-\item{pubchem.id}{The pubchem identifier. Must be a single numeric value or NA.}
+\item{pubchem.id}{The pubchem identifier. Must be a single numeric value or `NA`.}
 
-\item{MW}{The molecular weight of the Molecule. Must be a single numeric value or NA.}
+\item{MW}{The molecular weight of the Molecule. Must be a single numeric value or `NA`.}
 
-\item{is.fraction}{Single logical value that indicates if the Molecule represents a fraction (e.g. fraction excreted to urin).}
+\item{is.fraction}{Single logical value that indicates if the Molecule represents a fraction
+(e.g. fraction excreted to urin).}
 
-\item{fixed.unit}{Indicates if the Molecule has a fixed unit (always the same unit). If not a single unit is used NA must be set.}
+\item{fixed.unit}{Indicates if the Molecule has a fixed unit (always the same unit).
+If not a single unit is used `NA` must be set.}
 
-\item{ylab}{A label for the y-axis if Profiles for a Molecule are plotted. Must be a single non-empty string.}
+\item{ylab}{A label for the y-axis if Profiles for a Molecule are plotted. Must be a single
+non-empty string.}
 
-\item{col}{A color that should be used for plotting. Must be a single value (NA is allowed).}
+\item{col}{A color that should be used for plotting. Must be a single value (`NA` is allowed).}
 
-\item{pch}{A point type that should be used for plotting. Must be a single value (NA is allowed).}
+\item{pch}{A point type that should be used for plotting. Must be a single value (`NA` is allowed).}
 
-\item{lty}{A line type that should be used for plotting. Must be a single value (NA is allowed).}
+\item{lty}{A line type that should be used for plotting. Must be a single value (`NA` is allowed).}
 }
 \description{
 A molecule is a description of a measured entity from a PKSim/Mobi container.
-It can be a PK descriptor (e.g. concentrations) or PD descriptor (e.g. heart rate).
+  It can be a PK descriptor (e.g. concentrations) or PD descriptor (e.g. heart rate).
 }
 \details{
-If MW is not set, the name or (if set) the pubchem identifier will be used to fetch the molecular weight
-from the Pubchem database. If this fails the molecule is not created. If the fetching is done via name
-(no pubchem identifier is provided) the pubchem idenfier is fetched as well.
+If MW is not set, the name or (if set) the pubchem identifier will be
+  used to fetch the molecular weight from the Pubchem database. If this fails the molecule is
+  not created. If the fetching is done via name (no pubchem identifier is provided) the pubchem
+  idenfier is fetched as well.
 
-For PD Molecules a dummy value for MW should be set (e.g. 0) to avoid the automatic fetching from Pubchem.
-When it comes to matchers, special charaters (e.g. "|") must be regular expression safe (escaped).
-We povide special matcher functions that allows the easy creation often used matching expressions.
+For PD Molecules a dummy value for MW should be set (e.g. 0) to avoid the automatic fetching
+  from Pubchem. When it comes to matchers, special charaters (e.g. "|") must be regular
+  expression safe (escaped). We povide special matcher functions that allows the easy creation
+  often used matching expressions.
+}
+\examples{
+nic <- molecule("Nicotine") # will fetch from PubChem
+nic_2 <- molecule("Nic", pubchem.id = 89594) # will fetch Nicotine from Pubchem from id
+test <- molecule("PD Marker", MW = 0) # will not fetch from Pubchem
+
 }
 \seealso{
 Other molecule functions: \code{\link{has_molecules}},

@@ -4,12 +4,14 @@
 \alias{print.molecule}
 \title{Prints Information about a Molecule}
 \usage{
-\method{print}{molecule}(x, details = F)
+\method{print}{molecule}(x, details = F, ...)
 }
 \arguments{
 \item{x}{The molecule object.}
 
 \item{details}{True if all details should be printed, else False.}
+
+\item{...}{Further arguments passed to or from other methods.}
 }
 \value{
 Invisible copy of the object \code{x}.
@@ -20,11 +22,11 @@ Prints Information about a Molecule
 \examples{
 a <- molecule("Nicotine")
 a # prints a without details
-print(a, details = T) # prints a with details
+print(a, details = TRUE) # prints a with details
 
 b <- molecule("THC")
 mol_list <- list(a, b)
-print(mol_list, details = T) # prints molecule list with details
+print(mol_list, details = TRUE) # prints molecule list with details
 
 }
 \seealso{

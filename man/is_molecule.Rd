@@ -10,10 +10,15 @@ is_molecule(ds)
 \item{ds}{The data structure that should be tested.}
 }
 \value{
-True if the data structure is a Molecule.
+`TRUE` if the data structure is a Molecule.
 }
 \description{
 Checks if a Data Structure is a Molecule
+}
+\examples{
+is_molecule("Hallo") # FALSE
+is_molecule(molecule("Test", MW = 100)) # TRUE
+
 }
 \seealso{
 Other molecule functions: \code{\link{has_molecules}},

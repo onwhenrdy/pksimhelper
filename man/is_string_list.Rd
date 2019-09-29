@@ -11,18 +11,27 @@ is_string_list(vec, string.like = F, can.be.empty = F)
 
 \item{string.like}{If input is allowed to be convertible to string for the test.}
 
-\item{can.be.empty}{If empty strings are allowed.}
+\item{can.be.empty}{If empty strings are allowed.
+
+Returns `TRUE` for empty lists. For lists with NA-values this function will return `FALSE`.}
 }
 \value{
-True, if the input is a string or list-like object of strings, else False.
+`TRUE`, if the input is a string or list-like object of strings, else `FALSE`.
 }
 \description{
 Tests if Input is a String or List-like Object of Strings
 }
 \seealso{
-Other helper functions: \code{\link{has_units}},
+Other helper functions: \code{\link{any_na}},
+  \code{\link{any_null}}, \code{\link{convert_values}},
+  \code{\link{has_dose}}, \code{\link{has_units}},
+  \code{\link{is_dose_unit}},
+  \code{\link{is_numeric_list}},
   \code{\link{is_single_logical}},
   \code{\link{is_single_numeric}},
-  \code{\link{is_single_string}}, \code{\link{is_unit}}
+  \code{\link{is_single_string}},
+  \code{\link{is_time_unit}}, \code{\link{is_unit}},
+  \code{\link{rm_units}}, \code{\link{single_na}},
+  \code{\link{to_range}}
 }
 \concept{helper functions}

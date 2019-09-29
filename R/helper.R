@@ -3,14 +3,54 @@
 # Input Helper
 ####################################################
 
+#' Convinience Helper to Test for any `NA` value
+#'
+#' @param x The test value.
+#'
+#' @return `TRUE` if any value in `x` is `NA`.
+#' @export
+#'
+#' @family helper functions
+#'
+any_na <- function(x) {
+  any(is.na(x))
+}
+
+#' Convinience Helper to Test for single `NA` value
+#'
+#' @param x The test value.
+#'
+#' @return `TRUE` if first value in `x` is `NA` and `length(x) == 1`.
+#' @export
+#'
+#' @family helper functions
+#'
+single_na <- function(x) {
+  any(is.na(x)) && length(x) == 1
+}
+
+#' Convinience Helper to Test for any `NULL` value
+#'
+#' @param x The test value.
+#'
+#' @return `TRUE` if any value in `x` is `NULL`.
+#' @export
+#'
+#' @family helper functions
+#'
+any_null <- function(x) {
+  any(is.null(x))
+}
+
+
 #' Checks if Input is a Single String
 #'
 #' @param input The input that should be tested
 #' @param can.be.empty If the input (if string) is allowed to be empty.
 #' @param trim.check If the input (if string) should be trimmed before the check.
 #'
-#' @return True if the input is a single string of vector with a single string.
-#' Lists with one string element will return False.
+#' @return `TRUE` if the input is a single string of vector with a single string.
+#' Lists with one string element will return `FALSE`.
 #'
 #' @family helper functions
 #'
@@ -23,7 +63,32 @@ is_single_string <- function(input, can.be.empty = T, trim.check = T) {
   if (trim.check)
     input <- base::trimws(input)
 
-  return(is.single.str && (can.be.empty || nchar(input) > 0 ))
+  return(is.single.str && (can.be.empty || nchar(input) > 0 ) && !is.na(input))
+}
+
+
+#' Tests if Input is a String or List-like Object of Strings
+#'
+#' @param vec The input object.
+#' @param string.like If input is allowed to be convertible to string for the test.
+#' @param can.be.empty If empty strings are allowed.
+#'
+#' Returns `TRUE` for empty lists. For lists with NA-values this function will return `FALSE`.
+#'
+#' @return `TRUE`, if the input is a string or list-like object of strings, else `FALSE`.
+#' @export
+#'
+#' @family helper functions
+#'
+is_string_list <- function(vec, string.like = F, can.be.empty = F) {
+
+  if (any(is.na(vec)))
+    return(F)
+
+  if (string.like)
+    vec <- paste(vec)
+
+  all(sapply(vec, is_single_string, can.be.empty = can.be.empty))
 }
 
 
@@ -31,7 +96,7 @@ is_single_string <- function(input, can.be.empty = T, trim.check = T) {
 #'
 #' @param input The input that should be tested
 #'
-#' @return True if the input is a single logical value. Lists with one logical value will return False.
+#' @return `TRUE` if the input is a single logical value. Lists with one logical value will return `FALSE`.
 #' @export
 #'
 #' @family helper functions
@@ -46,7 +111,7 @@ is_single_logical <- function(input) {
 #'
 #' @param input The input that should be tested
 #'
-#' @return True if the input is a single numeric value. Lists with one numeric value will return False.
+#' @return `TRUE` if the input is a single numeric value. Lists with one numeric value will return `FALSE`.
 #' @export
 #'
 #' @family helper functions
@@ -56,12 +121,37 @@ is_single_numeric <- function(input) {
   is.numeric(input) && length(input) == 1 && !is.na(input)
 }
 
+# TODO: Tests
+#' Tests if Input is a List-like Object of Numerics
+#'
+#' @param vec The input object.
+#' @param can.be.empty If NA-values are allowed.
+#'
+#' Returns `TRUE` for empty lists.
+#'
+#' @return `TRUE`, if the input is a list-like object of numerics, else `FALSE`.
+#' @export
+#'
+#' @family helper functions
+#'
+is_numeric_list <- function(vec, can.be.empty = F) {
+
+  if (length(vec) == 0)
+    return(F)
+
+  if (!can.be.empty && any(is.na(vec)))
+    return(F)
+
+  all(sapply(vec, is_single_numeric))
+}
+
+
 
 #' Tests if a Data Structure has Units Attached.
 #'
 #' @param input The data structure that should be tested.
 #'
-#' @return True if the data structure inherits from \code{units} (must use the \code{units} package).
+#' @return `TRUE` if the data structure inherits from `units` (must use the `units` package).
 #' @export
 #'
 #' @family helper functions
@@ -78,34 +168,106 @@ has_units <- function(input) {
   all(sapply(input, test_fn))
 }
 
-
-#' Tests if Input is a String or List-like Object of Strings
+#' Tests for a Valid Dose Unit String
 #'
-#' @param vec The input object.
-#' @param string.like If input is allowed to be convertible to string for the test.
-#' @param can.be.empty If empty strings are allowed.
+#' This function will only work correctly for lower case strings (e.g. kg and not KG).
+#' For non-strings, NA or NULL this function will return False.
 #'
-#' @return True, if the input is a string or list-like object of strings, else False.
+#' @param str The string that should be tested.
+#'
+#' @return `TRUE`, if a valid dose unit is provided, else `FALSE`.
 #' @export
 #'
 #' @family helper functions
 #'
-is_string_list <- function(vec, string.like = F, can.be.empty = F) {
+#' @examples
+#'
+#' is_dose_unit("") # F
+#' is_dose_unit(NA) # F
+#' is_dose_unit("mg") # T
+#' is_dose_unit("pg") # T
+#' is_dose_unit("µg") # T
+#' is_dose_unit("µg/kg") # F
+#'
+is_dose_unit <- function(str) {
 
-  if (any(is.na(vec)))
+  if (!is_single_string(str, can.be.empty = F)) {
     return(F)
+  }
 
-  if (string.like)
-    vec <- paste(vec)
-
-  all(sapply(vec, is_single_string, can.be.empty = can.be.empty))
+  test <- units::as_units(1, "mg")
+  tryCatch({units(test) <- str; T},
+           error = function(e) F,
+           warning = function(w) F)
 }
+
+#' Tests for a Valid Time Unit String
+#'
+#' This function will only work correctly for lower case strings (e.g. h and not H).
+#' For non-strings, NA or NULL this function will return False.
+#'
+#' @param str The string that should be tested.
+#'
+#' @return `TRUE`, if a valid time unit is provided, else `FALSE`.
+#' @export
+#'
+#' @family helper functions
+#'
+#' @examples
+#'
+#' is_time_unit("") # F
+#' is_time_unit(NA) # F
+#' is_time_unit("h") # T
+#' is_time_unit("sec") # T
+#' is_time_unit("weeks") # T
+#'
+is_time_unit <- function(str) {
+
+  if (!is_single_string(str, can.be.empty = F)) {
+    return(F)
+  }
+
+  test <- units::as_units(1, "h")
+  tryCatch({units(test) <- str; T},
+           error = function(e) F,
+           warning = function(w) F)
+}
+
+#' Tests if a Single Numeric Value has a valid Dosing Unit attached
+#'
+#' @param value A single numeric value.
+#'
+#' @return `TRUE` if it is a single numeric value with a valid dosing unit (e.g. mg, µg, ...)
+#'   attached, else `FALSE`.
+#' @export
+#'
+#' @family helper functions
+#'
+#' @examples
+#'
+#' has_dose(units::as_units(12, "mg")) # true
+#' has_dose(units::as_units(12.4, "\U00B5g")) # true
+#' has_dose(units::as_units(12.4, "m")) # false
+#' has_dose(12.4) # false
+#'
+has_dose <- function(value) {
+
+  if (!is_single_numeric(value) || !has_units(value)) {
+    return(F)
+  }
+
+
+  tryCatch({units(value) <- "mg"; T},
+           error = function(e) F,
+           warning = function(w) F)
+}
+
 
 #' Checks if a String is a Valid Unit
 #'
 #' @param str The input string.
 #'
-#' @return True if a valid unit, else False.
+#' @return `TRUE` if a valid unit, else `FALSE`.
 #' @export
 #'
 #' @family helper functions
@@ -124,6 +286,104 @@ is_unit <- function(str) {
   })
   return(ok)
 }
+
+
+#' Converts two Values and a Unit String to a Valid Range
+#'
+#' @param min The minumum value (will be converted by `as.numeric`).
+#' @param max The maximum value (will be converted by `as.numeric`)
+#' @param unit.str A unit string (e.g. mg).
+#'
+#' @return A vector with `length` 2 that has a unit attached. If `min` and `max` are both `NA` no unit
+#' will be attached.
+#'
+#' If `min` and `max` are both `NA` `unit.str` is ignored and will not be evaluated.
+#'
+#' @family helper functions
+#'
+#' @export
+#'
+#' @examples
+#'
+#' to_range(NA, NA, NA) # will return c(NA, NA)
+#' to_range(NA, 1, "mg") # will return c(NA, 1) with attached unit "mg"
+#' to_range(NA, "1", "mg") # will return c(NA, 1) with attached unit "mg"
+#' # to_range(1, NA, NA) # error
+#'
+to_range <- function(min, max, unit.str) {
+
+  result <- as.numeric(c(min, max))
+  if (purrr::every(result, is.na))
+    return(result)
+
+  if (!is_unit(unit.str))
+    stop(paste("unit string <", unit.str, "> is not a valid unit string"), call. = F)
+
+  units::as_units(result, unit.str)
+}
+
+
+# TODO: Tests and docs
+#' Converts Values from one unit into another.
+#'
+#' @param values Input values that should be converted from `from` to `to`. Input can be a vector/`tibble`
+#'   or `data.frame`.
+#' @param from  Unit string that is compatible with `to`.
+#' @param to f Unit string that is compatible with `from`.
+#' @param attach.unit If `TRUE` the unit `from` is attached to the returned values.
+
+#' If values already has a unit attached `from` is ignored.
+#'
+#' @family helper functions
+#'
+#' @return A
+#' @export
+#'
+#' @examples
+#'
+convert_values <- function(values, from = NA, to, attach.unit = F) {
+
+  if (!is_unit(to))
+    stop("`to` is not a valid unit.", call. = F)
+
+  if (!has_units(values)) {
+    if (!is_unit(from))
+      stop("`from` is not a valid unit.", call. = F)
+
+    units(values) <- from
+  }
+
+  units(values) <- to
+
+  if (!attach.unit)
+    values <- rm_units(values)
+
+  return(values)
+}
+
+#' Removes Units from an Object
+#'
+#' If the input does not have units attached it is returned.
+#'
+#' @param x The input object.
+#'
+#'
+#' @return `x` without units attached.
+#'
+#' @family helper functions
+#'
+#' @export
+#'
+rm_units <- function(x) {
+  if (has_units(x))
+    x <- units::drop_units(x)
+
+  return(x)
+}
+
+
+
+
 
 
 

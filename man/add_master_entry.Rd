@@ -4,36 +4,66 @@
 \alias{add_master_entry}
 \title{Adds a New Entry to an Master Object}
 \usage{
-add_master_entry(master.obj, pop.name = NA, pop.molecules = NA,
-  sim.name = NA, sim.molecules = NA, obs.ids = NA, groups = NA,
-  plot.header = NA, plot.x.range = NA, plot.y.range = NA)
+add_master_entry(master.obj, pop.file = NA, pop.id = pop.file,
+  pop.molecules = NA, sim.file = NA, sim.id = sim.file,
+  sim.molecules = NA, dose = NA, obs.ids = NA, groups = NA,
+  plot.header = NA, plot.x.range = NA, plot.y.range = NA,
+  entry.list = NA)
 }
 \arguments{
 \item{master.obj}{The master object (must be one valid master object).}
 
-\item{pop.name}{The name of the population simulation (must be NA or a single non-empty string).}
+\item{pop.file}{A file or entry descriptor for a population simulation
+(can be `NA` or a single string).}
 
-\item{pop.molecules}{One or more (molecule list) molecules that are associated to the population simulation. Can be NA if \code{pop.name} is NA.}
+\item{pop.id}{Id for a population simulation (can be `NA` or a single string).
+Default: `pop.file`.}
 
-\item{sim.name}{The name of the individual simulation (must be NA or a single non-empty string).}
+\item{pop.molecules}{One or more (molecule list) molecules that are associated to
+the population simulation. Can be `NA` if `pop.id`/`pop.file` is `NA`.}
 
-\item{sim.molecules}{One or more (molecule list) molecules that are associated to the individual simulation. Can be NA if \code{sim.name} is NA.}
+\item{sim.file}{A file or entry descriptor for an individual simulation
+(can be `NA` or a single string).}
 
-\item{obs.ids}{The associated observed data ids. Can be NA or one/more string-convertibles (e.g. strings or numbers). The Ids are converted to strings.}
+\item{sim.id}{Id for an individual simulation (can be `NA` or a single string). Default: `pop.file`.}
 
-\item{groups}{Group entries for the simulations. Must be NA or a list-like object with string-convertibles or NA (if not set for a group).
+\item{sim.molecules}{One or more (molecule list) molecules that are associated to the
+individual simulation. Can be `NA` if `sim.id`/`sim.file` is `NA`.}
+
+\item{dose}{A dose associated with the simulations. Can be `NA` or a single
+numeric entry with attached dosing unit. The value will be converted to the dosing unit
+associated with the `master.obj`.}
+
+\item{obs.ids}{The associated observed data ids. Can be `NA` or one/more
+string-convertibles (e.g. strings or numbers). The Ids are converted to strings.}
+
+\item{groups}{Group entries for the simulations. Must be `NA` or
+  a list-like object with string-convertibles or `NA` (if not set for a group).
 The number of elements cannot be larger than the number of groups of the master object.}
 
-\item{plot.header}{The name of the plottings header for the simulations. Can be NA or a (empty) single string.}
+\item{plot.header}{The name of the plottings header for the simulations.
+Can be `NA` or a (empty) single string.}
 
-\item{plot.x.range}{The plotting range for the x-axis. Can be NA (no range). If not NA, units must be associated with the numeric vector.}
+\item{plot.x.range}{The plotting range for the x-axis. Can be `NA` (no range).
+If not `NA`, units must be associated with the numeric vector of size 2.}
 
-\item{plot.y.range}{The plotting range for the y-axis. Can be NA (no range). If not NA, units must be associated with the numeric vector.
+\item{plot.y.range}{The plotting range for the y-axis. Can be `NA` (no range).
+If not `NA`, units must be associated with the numeric vector of size 2.}
 
-A note on the plot.X/Y.range options: If only one parameter (with unit) is provided the range is implicitly set to \code{c(value, NA)} (no upper limit).
-If NA is set (one value; no limits) no unit must be set. If only one limit (upper or lower) should be set the complimentary direction must be set to NA.
+\item{entry.list}{A single or a list of entries of class `masterEntry`. If this parameter
+  is set all other parameters will be ignored.
 
-A note on molecules: Molecules must be present in the master object (when master was created). Unknown molecules will raise an error.}
+A note on the plot.X/Y.range options: If only one parameter (with unit) is provided the range
+  is implicitly set to `c(value, NA)` (no upper limit).
+  If `NA` is set (one value; no limits) no unit must be set. If only one limit (upper or lower)
+  should be set the complimentary direction must be set to `NA`.
+
+A note on molecules: Molecules must be present in the master object (when master was created).
+  Unknown molecules will raise an error.
+
+If `pop.file` is set `pop.id` must be set as well. If `sim.file` is set `sim.id` must be
+  set as well. A warning will be displayed if entries with the same `pop.id` or `sim.id` are
+  already present in the `master.obj`.}
 }
 \value{
 The master object with added entry.
@@ -45,16 +75,25 @@ Adds a New Entry to an Master Object
 
 mol_1 <- molecule("Foo", MW = 100)
 mol_2 <- molecule("Bar", MW = 200)
-m <- master("Test", molecule_list(mol_1, mol_2), groups = 2) # master with 2 associated molecules
+# master with 2 associated molecules
+m <- master("Test", molecule_list(mol_1, mol_2), groups = 2)
 
-m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1) # ok
-m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = molecule_list(mol_1, mol_2)) # ok
-# m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = NA) # error
-# m <- add_master_entry(m, pop.name = "Pop 2", pop.molecules = molecule("Unknown", MW = 10)) # error
+m <- add_master_entry(m, pop.file = "Pop", pop.molecules = mol_1) # ok
+m <- add_master_entry(m, pop.file = "Pop 2", pop.molecules = molecule_list(mol_1, mol_2)) # ok
 
-m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", NA)) # ok only Group_1 is set
-m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo")) # ok both groups set
-# m <- add_master_entry(m, pop.name = "Pop", pop.molecules = mol_1, groups = c("Foo", "Boo", "Not in master")) # error
+# m <- add_master_entry(m, pop.file = "Pop 2", pop.molecules = NA) # error
+# error
+# m <- add_master_entry(m, pop.file = "Pop 2", pop.molecules = molecule("Unknown", MW = 10))
+
+# ok only Group_1 is set
+m <- add_master_entry(m, pop.file = "Pop 5", pop.molecules = mol_1, groups = c("Foo", NA))
+
+# ok both groups set
+m <- add_master_entry(m, pop.file = "Pop 7", pop.molecules = mol_1, groups = c("Foo", "Boo"))
+
+# error
+# m <- add_master_entry(m, pop.name = "Pop 10", pop.molecules = mol_1,
+#                       groups = c("Foo", "Boo", "Not in master"))
 
 m <- add_master_entry(m, plot.x.range = NA) # ok -> no limit
 m <- add_master_entry(m, plot.x.range = units::as_units(c(1,2), "h")) # ok upper and lower limit
@@ -65,8 +104,14 @@ m <- add_master_entry(m, plot.x.range = units::as_units(c(1, NA), "h")) # ok onl
 
 }
 \seealso{
-Other master functions: \code{\link{bind_master}},
-  \code{\link{filter_master}}, \code{\link{is_master}},
+Other master functions: \code{\link{[.master}},
+  \code{\link{bind_master}}, \code{\link{entry.default}},
+  \code{\link{entry.master}}, \code{\link{entry}},
+  \code{\link{filter_master}},
+  \code{\link{groups.default}},
+  \code{\link{groups.master}}, \code{\link{groups}},
+  \code{\link{is_masterEntry_list}},
+  \code{\link{is_masterEntry}}, \code{\link{is_master}},
   \code{\link{master}}, \code{\link{print.master}}
 }
 \concept{master functions}

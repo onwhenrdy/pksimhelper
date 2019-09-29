@@ -9,8 +9,9 @@ bind_master(master, slave)
 \arguments{
 \item{master}{The master object that meta data is preserved.}
 
-\item{slave}{The slave master object that is bound to the master object. The number of groups of the slave object
-must be at most the number of groups of the master object. Missing group entries will be filled with NA.}
+\item{slave}{The slave master object that is bound to the master object.
+The number of groups of the slave object must be at most the number of groups of the master
+object. Missing group entries will be filled with `NA`.}
 }
 \value{
 A bound (combined) master object.
@@ -29,8 +30,14 @@ bind_master(a, b)
 
 }
 \seealso{
-Other master functions: \code{\link{add_master_entry}},
-  \code{\link{filter_master}}, \code{\link{is_master}},
+Other master functions: \code{\link{[.master}},
+  \code{\link{add_master_entry}},
+  \code{\link{entry.default}}, \code{\link{entry.master}},
+  \code{\link{entry}}, \code{\link{filter_master}},
+  \code{\link{groups.default}},
+  \code{\link{groups.master}}, \code{\link{groups}},
+  \code{\link{is_masterEntry_list}},
+  \code{\link{is_masterEntry}}, \code{\link{is_master}},
   \code{\link{master}}, \code{\link{print.master}}
 }
 \concept{master functions}

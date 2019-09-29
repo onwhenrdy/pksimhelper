@@ -10,15 +10,21 @@ is_single_logical(input)
 \item{input}{The input that should be tested}
 }
 \value{
-True if the input is a single logical value. Lists with one logical value will return False.
+`TRUE` if the input is a single logical value. Lists with one logical value will return `FALSE`.
 }
 \description{
 Checks if Input is a Single Logical Value
 }
 \seealso{
-Other helper functions: \code{\link{has_units}},
+Other helper functions: \code{\link{any_na}},
+  \code{\link{any_null}}, \code{\link{convert_values}},
+  \code{\link{has_dose}}, \code{\link{has_units}},
+  \code{\link{is_dose_unit}},
+  \code{\link{is_numeric_list}},
   \code{\link{is_single_numeric}},
   \code{\link{is_single_string}},
-  \code{\link{is_string_list}}, \code{\link{is_unit}}
+  \code{\link{is_string_list}}, \code{\link{is_time_unit}},
+  \code{\link{is_unit}}, \code{\link{rm_units}},
+  \code{\link{single_na}}, \code{\link{to_range}}
 }
 \concept{helper functions}

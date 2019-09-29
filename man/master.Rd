@@ -2,20 +2,23 @@
 % Please edit documentation in R/create.R
 \name{master}
 \alias{master}
-\title{Creates of Master Object}
+\title{Creates a Master Object}
 \usage{
-master(id, molecules, reference = NA, groups = 0)
+master(id, molecules, reference = NA, dose.unit = "mg", groups = 0)
 }
 \arguments{
 \item{id}{The id of the master object (must be a non-empty string).}
 
-\item{molecules}{A molecule list or single molecule that should at least contain all molecules that are added later on. Must be non-empty.
-
-Adding entries to a master object should only be done via \code{add_master_entry}.}
+\item{molecules}{A molecule list or single molecule that should at least contain all molecules
+that are added later on. Must be non-empty.}
 
 \item{reference}{The reference of the master object (optional).}
 
-\item{groups}{The number of Groups per master entry that should be created (must be numberic and at least be 0).}
+\item{dose.unit}{A valid unit string for a given dose. Unit string must be lower case.
+Adding entries to a master object should only be done via \code{add_master_entry}.}
+
+\item{groups}{The number of Groups per master entry that should be created
+(must be numeric and at least be 0).}
 }
 \value{
 A master object.
@@ -25,13 +28,22 @@ The reference should typically store the filename if the master object is parsed
 }
 \examples{
 
-m1 <- master("test")
-m2 <- master("test 2", "my ref", groups = 3)
+mol <- molecule("Mol 1", MW = 100)
+m1 <- master("test", mol)
+m2 <- master("test 2", mol, "my ref", groups = 3)
+m3 <- master("test 2", mol, "my ref", "ng",  groups = 3)
 
 }
 \seealso{
-Other master functions: \code{\link{add_master_entry}},
-  \code{\link{bind_master}}, \code{\link{filter_master}},
-  \code{\link{is_master}}, \code{\link{print.master}}
+Other master functions: \code{\link{[.master}},
+  \code{\link{add_master_entry}},
+  \code{\link{bind_master}}, \code{\link{entry.default}},
+  \code{\link{entry.master}}, \code{\link{entry}},
+  \code{\link{filter_master}},
+  \code{\link{groups.default}},
+  \code{\link{groups.master}}, \code{\link{groups}},
+  \code{\link{is_masterEntry_list}},
+  \code{\link{is_masterEntry}}, \code{\link{is_master}},
+  \code{\link{print.master}}
 }
 \concept{master functions}

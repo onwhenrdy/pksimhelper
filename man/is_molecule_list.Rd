@@ -10,7 +10,8 @@ is_molecule_list(list)
 \item{list}{The data structure that should be tested.}
 }
 \value{
-True if the data structure is a Molecule list. For single Molecules this function returns False.
+`TRUE` if the data structure is a Molecule list. For single Molecules
+  this function returns `FALSE`.
 }
 \description{
 Checks if a Data Structure is a list of Molecules

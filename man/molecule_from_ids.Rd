@@ -4,20 +4,23 @@
 \alias{molecule_from_ids}
 \title{Returns Molecules with certain ids from a Molecule List}
 \usage{
-molecule_from_ids(mol.list, query.ids, partial.matches = F, rm.na = F)
+molecule_from_ids(mol.list, query.ids, partial.matches = FALSE,
+  rm.na = FALSE)
 }
 \arguments{
 \item{mol.list}{A non-empty molecule list.}
 
 \item{query.ids}{One or more ids that should be queried}
 
-\item{partial.matches}{If partial matches are allowed (will return \code{NULL} entries for non-matches).}
+\item{partial.matches}{If partial matches are allowed (will return `NULL` entries for non-matches).}
 
-\item{rm.na}{If non-matches should be removed from the result (only works for \code{partial.matches = TRUE}).}
+\item{rm.na}{If non-matches should be removed from the result (only works for
+`partial.matches = TRUE`).}
 }
 \value{
-If \code{query_ids} is one string a molecule is returned. If more than one molecule is queried
-a molecule list is returned. If one or more query strings could not be found \code{NULL} is returned (\code{partial.matches = FALSE}).
+If `query_ids` is one string a molecule is returned. If more than one molecule is queried
+  a molecule list is returned. If one or more query strings could not be found `NULL` is returned
+  (`partial.matches = FALSE`).
 }
 \description{
 Returns Molecules with certain ids from a Molecule List
@@ -27,11 +30,16 @@ Returns Molecules with certain ids from a Molecule List
 mol_1 <- molecule("Mol 1", MW = 100)
 mol_2 <- molecule("Mol 2", MW = 200)
 mol_list <- molecule_list(mol_1, mol_2)
+
 molecule_from_ids(mol_list, c("Mol 1")) # only one molecule is returned
 molecule_from_ids(mol_list, c("Mol 1", "Mol 2")) # two molecules are returned
 molecule_from_ids(mol_list, c("Mol 3", "Mol 2")) # NULL is returned
-molecule_from_ids(mol_list, c("Mol 3", "Mol 2"), partial.matches = T) # list(NULL, Mol_2) is returned
-molecule_from_ids(mol_list, c("Mol 3", "Mol 2"), partial.matches = T, rm.na = T) # Mol_2 is returned
+
+# list(NULL, Mol_2) is returned
+molecule_from_ids(mol_list, c("Mol 3", "Mol 2"), partial.matches = TRUE)
+
+# Mol_2 is returned
+molecule_from_ids(mol_list, c("Mol 3", "Mol 2"), partial.matches = TRUE, rm.na = TRUE)
 
 }
 \seealso{

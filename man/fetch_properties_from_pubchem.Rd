@@ -2,7 +2,7 @@
 % Please edit documentation in R/create.R
 \name{fetch_properties_from_pubchem}
 \alias{fetch_properties_from_pubchem}
-\title{Fetch Compound properties from PubChem}
+\title{Fetches Compound properties from PubChem}
 \usage{
 fetch_properties_from_pubchem(names_or_cids,
   features = c("MolecularWeight"))
@@ -12,16 +12,17 @@ fetch_properties_from_pubchem(names_or_cids,
 
 \item{features}{The requested features from PubChem.
 For a list of possbile features see \url{https://pubchemdocs.ncbi.nlm.nih.gov/pug-rest$_Toc494865567}.
-If no features are provided (\code{NA} or \code{c()}) only the CIDs are returned.}
+If no features are provided `NA`, `NULL` or `c` only the CIDs are returned.}
 }
 \value{
-Dataframe with first column CID and requested feature columns.
+`tibble` with first column CID and requested feature columns.
 }
 \description{
 Fetches properties like e.g. MW or XlogP3 from Pubchem for compounds or CIDs.
 }
 \examples{
-nic_data <- fetch_from_pubchem("Nicotine")
-mol_data <- fetch_from_pubchem(list("Nicotine", 12345), features = c("MolecularWeight", "XLogP"))
+nic_data <- fetch_properties_from_pubchem("Nicotine")
+mol_data <- fetch_properties_from_pubchem(list("Nicotine", 12345),
+                                          features = c("MolecularWeight", "XLogP"))
 
 }

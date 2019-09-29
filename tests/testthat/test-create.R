@@ -1,7 +1,6 @@
 
-###########################################################################
-# Pubchem
-###########################################################################
+############################## PUBCHEM ##############################
+
 test_that("Fetching Nicotine as name from PubChem works", {
 
   mol_data <- fetch_properties_from_pubchem("Nicotine")
@@ -89,9 +88,7 @@ test_that("Fetching Nicotine with unknown feature fails", {
   expect_error(fetch_properties_from_pubchem(89594, features = c("FooBar", "XLogP")))
 })
 
-###########################################################################
-# Molecule
-###########################################################################
+############################## MOLECULE ##############################
 
 test_that("Creating a molecule from name works", {
 
@@ -309,9 +306,8 @@ test_that("is_unique_molecule_list works", {
   expect_false(is_unique_molecule_list(mol_list_2))
 })
 
-###########################################################################
-# Master
-###########################################################################
+
+############################## MASTER ##############################
 
 test_that("creating a master object works", {
 
@@ -389,9 +385,9 @@ test_that("add_master_entry works - add pop", {
   m <- master("Test", molecule_list(mol_1, mol_2))
   expect_equal(nrow(m$data), 0)
 
-  m <- add_master_entry(m, pop.name = "Pop", mol_1)
-  m <- add_master_entry(m, pop.name = "Pop 2", mol_2)
-  m <- add_master_entry(m, pop.name = "Pop 3", molecule_list(mol_1, mol_2))
+  m <- add_master_entry(m, pop.file = "Pop", pop.molecules = mol_1)
+  m <- add_master_entry(m, pop.file = "Pop 2", pop.molecules = mol_2)
+  m <- add_master_entry(m, pop.file = "Pop 3", pop.molecules = molecule_list(mol_1, mol_2))
   expect_equal(nrow(m$data), 3)
 })
 
@@ -403,14 +399,14 @@ test_that("add_master_entry works - add pop error", {
   m <- master("Test", molecule_list(mol_1, mol_2))
   expect_equal(nrow(m$data), 0)
 
-  expect_error(add_master_entry(m, pop.name = "Pop", pop.molecules = molecule_list(mol_1, mol_1)))
-  expect_error(add_master_entry(m, pop.name = "Pop", pop.molecules = NA))
-  expect_error(add_master_entry(m, pop.name = "Pop", pop.molecules = NULL))
-  expect_error(add_master_entry(m, pop.name = "Pop", pop.molecules = molecule("Too", MW = 100)))
-  expect_error(add_master_entry(m, pop.name = NA, pop.molecules = molecule_list(mol_1, mol_2)))
-  expect_error(add_master_entry(m, pop.name = NULL, pop.molecules = molecule_list(mol_1, mol_2)))
-  expect_error(add_master_entry(m, pop.name = c("1", "2"), pop.molecules = molecule_list(mol_1, mol_2)))
-  expect_error(add_master_entry(m, pop.name = list("1", "2"), pop.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, pop.id = "Pop", pop.molecules = molecule_list(mol_1, mol_1)))
+  expect_error(add_master_entry(m, pop.id = "Pop", pop.molecules = NA))
+  expect_error(add_master_entry(m, pop.pop.idname = "Pop", pop.molecules = NULL))
+  expect_error(add_master_entry(m, pop.id = "Pop", pop.molecules = molecule("Too", MW = 100)))
+  expect_error(add_master_entry(m, pop.id = NA, pop.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, pop.id = NULL, pop.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, pop.id = c("1", "2"), pop.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, pop.id = list("1", "2"), pop.molecules = molecule_list(mol_1, mol_2)))
 })
 
 test_that("add_master_entry works - add sim", {
@@ -421,9 +417,9 @@ test_that("add_master_entry works - add sim", {
   m <- master("Test", molecule_list(mol_1, mol_2))
   expect_equal(nrow(m$data), 0)
 
-  m <- add_master_entry(m, sim.name = "Sim", sim.molecules = mol_1)
-  m <- add_master_entry(m, sim.name = "Sim 2", sim.molecules = mol_2)
-  m <- add_master_entry(m, sim.name = "Sim 3", sim.molecules = molecule_list(mol_1, mol_2))
+  m <- add_master_entry(m, sim.file = "Sim", sim.molecules = mol_1)
+  m <- add_master_entry(m, sim.file = "Sim 2", sim.molecules = mol_2)
+  m <- add_master_entry(m, sim.file = "Sim 3", sim.molecules = molecule_list(mol_1, mol_2))
   expect_equal(nrow(m$data), 3)
 })
 
@@ -435,14 +431,14 @@ test_that("add_master_entry works - add sim error", {
   m <- master("Test", molecule_list(mol_1, mol_2))
   expect_equal(nrow(m$data), 0)
 
-  expect_error(add_master_entry(m, sim.name = "Sim", sim.molecules = molecule_list(mol_1, mol_1)))
-  expect_error(add_master_entry(m, sim.name = "Sim", sim.molecules = NA))
-  expect_error(add_master_entry(m, sim.name = "Sim", sim.molecules = NULL))
-  expect_error(add_master_entry(m, sim.name = "Sim", sim.molecules = molecule("Too", MW = 100)))
-  expect_error(add_master_entry(m, sim.name = NA, sim.molecules = molecule_list(mol_1, mol_2)))
-  expect_error(add_master_entry(m, sim.name = NULL, sim.molecules = molecule_list(mol_1, mol_2)))
-  expect_error(add_master_entry(m, sim.name = c("1", "2"), sim.molecules = molecule_list(mol_1, mol_2)))
-  expect_error(add_master_entry(m, sim.name = list("1", "2"), sim.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, sim.file = "Sim", sim.molecules = molecule_list(mol_1, mol_1)))
+  expect_error(add_master_entry(m, sim.file = "Sim", sim.molecules = NA))
+  expect_error(add_master_entry(m, sim.file = "Sim", sim.molecules = NULL))
+  expect_error(add_master_entry(m, sim.file = "Sim", sim.molecules = molecule("Too", MW = 100)))
+  expect_error(add_master_entry(m, sim.file = NA, sim.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, sim.file = NULL, sim.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, sim.file = c("1", "2"), sim.molecules = molecule_list(mol_1, mol_2)))
+  expect_error(add_master_entry(m, sim.file = list("1", "2"), sim.molecules = molecule_list(mol_1, mol_2)))
 })
 
 test_that("add_master_entry works - add obs", {
@@ -598,10 +594,10 @@ test_that("bind_master works", {
   mol_3 <- molecule("Baz", MW = 300)
 
   m_1 <- master("one", molecules = molecule_list(mol_1, mol_2), groups = 3)
-  m_1 <- add_master_entry(m_1, pop.name = "Pop", pop.molecules = mol_1, groups = c("A", NA, "B"))
+  m_1 <- add_master_entry(m_1, pop.file = "Pop", pop.molecules = mol_1, groups = c("A", NA, "B"))
 
   m_2 <- master("one", molecules = molecule_list(mol_1, mol_3), groups = 2)
-  m_2 <- add_master_entry(m_2, sim.name = "Sim", sim.molecules = mol_3, groups = c(NA, "C"))
+  m_2 <- add_master_entry(m_2, sim.file = "Sim", sim.molecules = mol_3, groups = c(NA, "C"))
 
   merged <- bind_master(m_1, m_2)
 
@@ -609,8 +605,10 @@ test_that("bind_master works", {
   expect_length(merged$molecules, 3)
   expect_equal(molecule_ids(merged$molecules), c("Foo", "Bar", "Baz"))
   expect_length(merged$group.names, 3)
-  expect_equal(merged$data$Pop_Name, c("Pop", NA))
-  expect_equal(merged$data$Sim_Name, c(NA, "Sim"))
+  expect_equal(merged$data$Pop_File, c("Pop", NA))
+  expect_equal(merged$data$Pop_Id, c("Pop", NA))
+  expect_equal(merged$data$Sim_File, c(NA, "Sim"))
+  expect_equal(merged$data$Sim_Id, c(NA, "Sim"))
   expect_equal(merged$data$Pop_Mols, c("Foo", NA))
   expect_equal(merged$data$Sim_Mols, c(NA, "Baz"))
   expect_equal(merged$data$Group_1, c("A", NA))
@@ -626,11 +624,59 @@ test_that("bind_master works with errors", {
   mol_3 <- molecule("Baz", MW = 300)
 
   m_1 <- master("one", molecules = molecule_list(mol_1, mol_2), groups = 3)
-  m_1 <- add_master_entry(m_1, pop.name = "Pop", pop.molecules = mol_1, groups = c("A", NA, "B"))
+  m_1 <- add_master_entry(m_1, pop.file = "Pop", pop.molecules = mol_1, groups = c("A", NA, "B"))
 
   m_2 <- master("one", molecules = molecule_list(mol_1, mol_3), groups = 2)
-  m_2 <- add_master_entry(m_2, sim.name = "Sim", sim.molecules = mol_3, groups = c(NA, "C"))
+  m_2 <- add_master_entry(m_2, sim.file = "Sim", sim.molecules = mol_3, groups = c(NA, "C"))
 
   expect_error(bind_master(m_2, m_3))
+})
+
+
+test_that("groups works", {
+
+  mol <- molecule("Mol 1", MW = 100)
+  m1 <- master("test", mol)
+  m2 <- master("test 2", mol, "my ref", groups = 3)
+  expect_true(is.null(groups(m1)))
+  expect_equal(groups(m2), c("Group_1", "Group_2", "Group_3"))
+})
+
+
+test_that("entry works - fn call", {
+
+  mol <- molecule("Mol 1", MW = 100)
+  m1 <- master("test", mol)
+  m1 <- add_master_entry(m1, "Pop 1", pop.molecules = mol)
+  m1 <- add_master_entry(m1, "Pop 2", pop.molecules = mol)
+  m1 <- add_master_entry(m1, "Pop 3", pop.molecules = mol)
+  m1 <- add_master_entry(m1, "Pop 4", pop.molecules = mol)
+
+
+  m_filtered <- entry(m1, 1)
+  expect_equal(m_filtered$Pop_Id, "Pop 1")
+
+  m_filtered_2 <- entry(m1, c(1,2))
+  expect_equal(m_filtered_2[[1]]$Pop_Id, "Pop 1")
+  expect_equal(m_filtered_2[[2]]$Pop_Id, "Pop 2")
+})
+
+
+test_that("entry works - operator call", {
+
+  mol <- molecule("Mol 1", MW = 100)
+  m1 <- master("test", mol)
+  m1 <- add_master_entry(m1, "Pop 1", pop.molecules = mol)
+  m1 <- add_master_entry(m1, "Pop 2", pop.molecules = mol)
+  m1 <- add_master_entry(m1, "Pop 3", pop.molecules = mol)
+  m1 <- add_master_entry(m1, "Pop 4", pop.molecules = mol)
+
+
+  m_filtered <- m1[1]
+  expect_equal(m_filtered$Pop_Id, "Pop 1")
+
+  m_filtered_2 <- m1[1,2]
+  expect_equal(m_filtered_2[[1]]$Pop_Id, "Pop 1")
+  expect_equal(m_filtered_2[[2]]$Pop_Id, "Pop 2")
 })
 

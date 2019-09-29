@@ -9,10 +9,10 @@ has_molecules(mol.list, query.ids)
 \arguments{
 \item{mol.list}{A non-empty molecule list.}
 
-\item{query.ids}{One or more ids that should be queried}
+\item{query.ids}{One or more ids that should be queried.}
 }
 \value{
-True if all query ids could be found, else False.
+`TRUE` if all query ids could be found, else `FALSE`.
 }
 \description{
 Checks if a Molecule List Contains all Query Ids
