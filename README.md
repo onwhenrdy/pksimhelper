@@ -1,11 +1,17 @@
 # pksimhelper
 R Tools for the Evaluation of PBPK Models via PKSim
 
-<!-- badges: start -->
+### Master:
 [![Travis build status](https://travis-ci.org/onwhenrdy/pksimhelper.svg?branch=master)](https://travis-ci.org/onwhenrdy/pksimhelper)
 [![Codecov test coverage](https://codecov.io/gh/onwhenrdy/pksimhelper/branch/master/graph/badge.svg)](https://codecov.io/gh/onwhenrdy/pksimhelper?branch=master)
 [![Lifecycle badge](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
-<!-- badges: end -->
+
+### Dev:
+[![Travis build status](https://travis-ci.org/onwhenrdy/pksimhelper.svg?branch=development)](https://travis-ci.org/onwhenrdy/pksimhelper)
+[![Codecov test coverage](https://codecov.io/gh/onwhenrdy/pksimhelper/branch/development/graph/badge.svg)](https://codecov.io/gh/onwhenrdy/pksimhelper?branch=development)
+[![Lifecycle badge](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+
+
 
 
 Current state: Early dev-only version (no examples, crappy docs and no workflow-critical document templates and/or template creation functionality).
