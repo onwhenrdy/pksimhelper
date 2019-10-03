@@ -91,6 +91,16 @@
   return(mols)
 }
 
+groups.master <- function(master.data) {
+  group_idx <- which(grepl("group", tolower(colnames(master.data$data))))
+  has_groups <- length(group_idx) > 0
+  if (has_groups) {
+    return(colnames(master.data$data)[group_idx])
+  }
+
+  return(NULL)
+}
+
 
 read.pop.profiles.from.master <- function(master.data,
                                           molecules = list(),
@@ -106,6 +116,8 @@ read.pop.profiles.from.master <- function(master.data,
 
   data <- master.data$data
   lines <- which(!is.na(data$pop))
+
+  group_names <- groups.master(master.data)
 
   results <- list()
   for (i in lines) {
@@ -133,11 +145,21 @@ read.pop.profiles.from.master <- function(master.data,
       x.max = data$x.max[i],
       y.min = data$y.min[i],
       y.max = data$y.max[i],
+      y.min = data$y.min[i],
+      y.max = data$y.max[i],
+      y.min.log = data$y.min.log[i],
+      y.max.log = data$y.max.log[i],
+      x.offset = data$x.offset[i],
       main = data$main[i]
     )
 
+    groups <- NULL
+    if (length(group_names) > 0)
+      groups <- as.character(data[i, group_names])
+
     pop.sim <- list(
       id = pop, obs.ids = obs.ids, profiles = profiles,
+      groups = groups,
       plot.infos = plot.infos
     )
     class(pop.sim) <- "MatchedProfiles"
@@ -342,7 +364,7 @@ read.obs.profiles <- function(file,
 
   # checks
   if (length(ref.sheet$ID) != length(unique(ref.sheet$ID))) {
-    stop(paste("File <", base.name, ">: Found non-unique IDs the reference sheet"))
+    stop(paste("File <", base.name, ">: Found non-unique IDs in the reference sheet:", ref.sheet$ID[which(duplicated(ref.sheet$ID))]))
   }
 
   # observed data sheet
@@ -380,7 +402,9 @@ read.obs.profiles <- function(file,
     colnames(data) <- c("Time", "Avg", "Min", "Max")
     i <- which(ref.sheet$ID == id)
     if (length(i) != 1) {
-      stop(paste("File <", base.name, ">: Found observed ID <", id, "> that has no match in the reference data sheet"))
+      warning(paste("File <", base.name, ">: Found observed ID <", id,
+                    "> that has no match in the reference data sheet. Data will be skipped"))
+      next
     }
 
     # check for duplicated times
@@ -394,7 +418,7 @@ read.obs.profiles <- function(file,
     }
     entry <- list(
       molecule = id.mol.list[[i]],
-      reference = ref.sheet$REF[i],
+      reference = gsub("\r\n", "\n", ref.sheet$REF[i]),
       group = ref.sheet$GROUP[i],
       id = id,
       time.unit = time.col$unit,
@@ -499,16 +523,34 @@ read.master.file <- function(master.file,
     c.names[xmax.id] <- "x.max"
   }
 
-  ymin.id <- which(grepl("y_min", c.names))
+  ymin.id <- which(grepl("^y_min", c.names))
   if (length(ymin.id) == 1) {
     units(df[, ymin.id]) <- .extract.unit(c.names[ymin.id])
     c.names[ymin.id] <- "y.min"
   }
-  ymax.id <- which(grepl("y_max", c.names))
+  ymax.id <- which(grepl("^y_max", c.names))
   if (length(ymax.id) == 1) {
     units(df[, ymax.id]) <- .extract.unit(c.names[ymax.id])
     c.names[ymax.id] <- "y.max"
   }
+
+  log_y_min.id <- which(grepl("^log_y_min", c.names))
+  if (length(log_y_min.id) == 1) {
+    units(df[, log_y_min.id]) <- .extract.unit(c.names[log_y_min.id])
+    c.names[log_y_min.id] <- "y.min.log"
+  }
+  log_ymax.id <- which(grepl("^log_y_max", c.names))
+  if (length(log_ymax.id) == 1) {
+    units(df[, log_ymax.id]) <- .extract.unit(c.names[log_ymax.id])
+    c.names[log_ymax.id] <- "y.max.log"
+  }
+
+  offset.id <- which(grepl("offset", c.names))
+  if (length(offset.id) == 1) {
+    units(df[, offset.id]) <- .extract.unit(c.names[offset.id])
+    c.names[offset.id] <- "x.offset"
+  }
+
   headline.id <- which(grepl("headline", c.names))
   c.names[headline.id] <- "main"
 
@@ -519,12 +561,20 @@ read.master.file <- function(master.file,
   c.names[sim.molecules.id] <- "sim.mol"
   colnames(df) <- c.names
 
+  group_cols <- which(grepl("group", c.names))
+  group_cols <- c.names[group_cols]
+
   # drop unknown colums
   known <- c(
     "pop", "sim", "obs", "pop.mol", "sim.mol",
-    "x.min", "x.max", "y.min", "y.max", "main"
-  )
+    "x.min", "x.max",
+    "y.min", "y.max",
+    "y.min.log", "y.max.log",
+    "x.offset", "main", group_cols)
   df <- df[, colnames(df) %in% known]
+
+  if ("obs" %in% colnames(df))
+    df$obs <- as.character(df$obs)
 
   # test for missing molecules
   for (i in 1:nrow(df)) {
@@ -759,6 +809,9 @@ read.sim.profiles.from.master <- function(master.data,
       x.max = master$x.max[i],
       y.min = master$y.min[i],
       y.max = master$y.max[i],
+      y.min.log = master$y.min.log[i],
+      y.max.log = master$y.max.log[i],
+      x.offset = master$x.offset[i],
       main = master$main[i]
     )
 

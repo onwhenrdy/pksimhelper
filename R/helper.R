@@ -4,6 +4,16 @@
   is.character(input) && length(input) == 1
 }
 
+is.blank <- function(x){
+  if (is.function(x)) return(FALSE)
+
+  return(
+    is.null(x) ||
+    length(x) == 0 ||
+    all(is.na(x)))
+}
+
+
 ####################################################
 # FILE HELPER
 ####################################################

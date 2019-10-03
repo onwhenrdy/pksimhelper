@@ -1,7 +1,12 @@
 # helper
 .geo.sd <- function(x, na.rm = TRUE) {
-  x[x <= 0] <- 1E-99
-  exp(stats::sd(log(x), na.rm = na.rm))
+
+  if (any(x <= 0)) {
+    x <- x + 1
+  }
+  mean <- geo.mean(x, na.rm = na.rm)
+
+  exp(sqrt(sum(log(x/mean)**2) / length(x)))
 }
 
 # variance functions
@@ -16,8 +21,17 @@ geo.dev.max <- function(values) geo.mean(values) / .geo.sd(values)
 
 # average functions
 geo.mean <- function(x, na.rm = TRUE) {
-  x[x <= 0] <- 1E-99
-  exp(sum(log(x[x > 0]), na.rm = na.rm) / length(x))
+  has_zeros <- FALSE
+  if (any(x <= 0)) {
+    x <- x + 1
+    has_zeros = TRUE
+  }
+
+  result <- exp(sum(log(x), na.rm = na.rm) / length(x))
+  if (has_zeros)
+    result <- result - 1
+
+  return(result)
 }
 
 # individual population profiles -> mean population profiles

@@ -80,6 +80,9 @@ plot.profile <- function(profile,
 }
 
 
+
+
+
 plot.matched <- function(matched, obs.data,
                          time.unit = NA,
                          value.unit = NA,
@@ -155,7 +158,7 @@ plot.matched <- function(matched, obs.data,
   }
 
   # new x-limits -> trim the data
-  if (!is.na(matched$plot.infos$x.max) && !is.na(matched$plot.infos$x.min)) {
+  if (!is.blank(matched$plot.infos$x.max) && !is.blank(matched$plot.infos$x.min)) {
     x.min <- matched$plot.infos$x.min
     units(x.min) <- time.unit
     x.min <- units::drop_units(x.min)
@@ -168,9 +171,42 @@ plot.matched <- function(matched, obs.data,
     }
   }
 
+  is.log <-  ("log" %in% names(main.plot.args) &&
+                grepl("y", main.plot.args[["log"]]))
+
+  if (is.log) {
+    if (!is.blank(matched$plot.infos$y.min.log))
+      matched$plot.infos$y.min <- matched$plot.infos$y.min.log
+
+    if (!is.blank(matched$plot.infos$y.max.log))
+      matched$plot.infos$y.max <- matched$plot.infos$y.max.log
+
+
+    for (i in 1:length(all.profiles)) {
+      if (all.profiles[[i]]$data.type == "individual") {
+        tmp <- all.profiles[[i]]$data
+        all.profiles[[i]]$data <- tmp[rowSums(tmp[-1] <= 0 ) == 0, ]
+      } else {
+        tmp <- all.profiles[[i]]$data
+        row_sub = apply(tmp, 1, function(row) all(row > 0, na.rm = T))
+        all.profiles[[i]]$data <- tmp[row_sub,]
+      }
+    }
+  }
+
+  if (!is.blank(matched$plot.infos$x.offset)) {
+    x_offset <- matched$plot.infos$x.offset
+    units(x_offset) <- time.unit
+    x_offset <- units::drop_units(x_offset)
+
+    for (i in 1:length(all.profiles)) {
+      all.profiles[[i]]$data$Time <- all.profiles[[i]]$data$Time - x_offset
+    }
+  }
+
   y.min <- NA
   y.max <- NA
-  if (!is.na(matched$plot.infos$y.max) && !is.na(matched$plot.infos$y.min)) {
+  if (!is.blank(matched$plot.infos$y.max) && !is.blank(matched$plot.infos$y.min)) {
     y.min <- matched$plot.infos$y.min
     units(y.min) <- value.unit
     y.min <- units::drop_units(y.min)
@@ -201,6 +237,10 @@ plot.matched <- function(matched, obs.data,
     }
   }
 
+  if (is.log && ylim[1] <= 0) {
+    ylim[1] <- 0 + ylim[2]/1000
+  }
+
   # factor
   ylim[2] <- ylim[2] + abs(ylim[1] - ylim[2]) * ymax.rel.add
 
@@ -223,9 +263,19 @@ plot.matched <- function(matched, obs.data,
     ylim[1] = 1E-4
   }
 
-  plot.params <- list(1, type = "n", xlim = xlim, ylim = ylim, xlab = xlab, ylab = ylab, main = main)
+  plot.params <- list(1, type = "n", xlim = xlim, ylim = ylim,
+                      xlab = xlab,
+                      ylab = ylab,
+                      yaxt = if (is.log) "n" else "s",
+                      main = main)
   plot.params <- append(plot.params, main.plot.args)
   do.call(graphics::plot, plot.params)
+  if (is.log) {
+    axis.parameter <- list(pos = "y", range = ylim)
+    axis.parameter <- append(axis.parameter, main.plot.args)
+    do.call(.minor.tick.log.axis, axis.parameter)
+  }
+
   # plot profiles
   for (pro in all.profiles) {
     if (pro$origin == "sim")
