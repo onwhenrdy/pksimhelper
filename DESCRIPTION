@@ -21,7 +21,8 @@ Imports:
   gplots,
   plotrix,
   data.table,
-  rmarkdown
+  rmarkdown,
+  magicaxis
 Suggests:
     testthat (>= 2.1.0),
     covr

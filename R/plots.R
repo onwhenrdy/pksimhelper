@@ -16,7 +16,8 @@ plot.profile <- function(profile,
     col <- add.args$col
     if (is.null(col))
       col <- "black"
-    poly.color <- add.alpha(col, poly.alpha)
+    if (!is.na(poly.alpha))
+      poly.color <- add.alpha(col, poly.alpha)
   }
 
   if (!is.profile(profile))
@@ -48,9 +49,10 @@ plot.profile <- function(profile,
 .legend.args <- function(profile.list) {
 
   # find the number of unique molecules
-  mols <- Map(function(x) x$molecule, profile.list)
+  mols <- Map(function(x) if (x$molecule$in.legend) x$molecule else NULL, profile.list)
+  mols <- mols[lengths(mols) != 0]
   unique_ids <- unlist(unique(Map(function(x) x$id, mols)))
-  mols <- Map(function(x) for(m in mols) if (m$id == x) return(m) , unique_ids)
+  mols <- Map(function(x) for (m in mols) if (m$id == x) return(m) , unique_ids)
 
   mol.names <- Reduce(function(x,y) append(x, y$display.name), mols, c())
   mol.cols <- Reduce(function(x,y) {append(x, y$color)}, mols, c())
@@ -79,10 +81,6 @@ plot.profile <- function(profile,
   return(list(legend = df$mol.names, col = df$mol.cols, lty = df$mol.ltys, pch = df$mol.pch))
 }
 
-
-
-
-
 plot.matched <- function(matched, obs.data,
                          time.unit = NA,
                          value.unit = NA,
@@ -99,6 +97,7 @@ plot.matched <- function(matched, obs.data,
                          show.main = T,
                          sim.lwd = 2.8,
                          error.lwd = 1.8,
+                         pretty.x.breaks = F,
                          legend.plot.args = list(x = "topright", cex = 1.25, lwd = 3, bty = "n"),
                          main.plot.args = list(bty = 'l', las = 1, cex.axis = 1.5, cex.lab = 1.7, cex = 1.5),
                          ...) {
@@ -266,6 +265,7 @@ plot.matched <- function(matched, obs.data,
   plot.params <- list(1, type = "n", xlim = xlim, ylim = ylim,
                       xlab = xlab,
                       ylab = ylab,
+                      xaxt = if (pretty.x.breaks) "n" else "s",
                       yaxt = if (is.log) "n" else "s",
                       main = main)
   plot.params <- append(plot.params, main.plot.args)
@@ -276,6 +276,26 @@ plot.matched <- function(matched, obs.data,
     do.call(.minor.tick.log.axis, axis.parameter)
   }
 
+  if (pretty.x.breaks) {
+    pb <- 10
+    x_unit <- tolower(units::deparse_unit(time.unit))
+    if (x_unit == "sec" || x_unit == "min") {
+
+    } else if (x_unit == "h") {
+      if (xlim[2] - xlim[1] >= 10)
+        pb <- 6
+      if (xlim[2] - xlim[1] >= 48)
+        pb <- 12
+    }
+
+    print(pb)
+    print(xlim)
+
+    axis.parameter <- list(prettybase = pb, side = 1, tcl = -0.5, usepar = T, minorn = -1)
+    axis.parameter <- append(axis.parameter, main.plot.args)
+    do.call(magicaxis::magaxis, axis.parameter)
+  }
+
   # plot profiles
   for (pro in all.profiles) {
     if (pro$origin == "sim")
@@ -283,7 +303,8 @@ plot.matched <- function(matched, obs.data,
     else
       lwd = error.lwd
 
-    graphics::plot(pro, col = pro$molecule$color, pch = pro$molecule$pch, lty = pro$molecule$lty, lwd = lwd, ...)
+    graphics::plot(pro, col = pro$molecule$color,
+                   pch = pro$molecule$pch, lty = pro$molecule$lty, lwd = lwd, ...)
   }
 
 
@@ -315,15 +336,38 @@ plot.matched <- function(matched, obs.data,
 }
 
 
+.legend_lb <- function(text, col, pch) {
+  te <- c()
+  co <- c()
+  p <- c()
+  for (i in 1:length(text)) {
+    split <- unlist(strsplit(as.character(text[i]), "\n"))
+    l <- length(split)
+    te <- c(te, split)
+    co <- c(co, col[i], rep(NA_character_, l - 1))
+    p <- c(p, pch[i], rep(NA, l - 1))
+  }
+
+  return(list(text = te, col = co, pch = p))
+}
+
+
 gof.plot <- function(pred.obs.data, value.lab,
                      target, lwd = 1,
                      group_by = "group",
                      unit.lab = NULL,
                      col = NA,
                      pch = NA,
+                     min = NA,
+                     max = NA,
                      nice.min = T,
                      nice.max = T,
+                     symmetry = F,
+                     smart_tagging = F,
+                     split_at_group_tag = NA,
                      legend.cex = 1.25,
+                     legend.ncol = 1,
+                     legend.titles = NULL,
                      ...) {
 
   target.pred <- paste0("pred.", target)
@@ -337,12 +381,35 @@ gof.plot <- function(pred.obs.data, value.lab,
 
 
   range <- range(df)
+  if (!is.na(min))
+    range[1] = min
+
+  if (!is.na(max))
+    range[2] = max
+
+
   if (nice.min) {
     range[1] <- 10^floor(log10(range[1]))
   }
 
   if (nice.max) {
     range[2] <- 10^ceiling(log10(range[2]))
+  }
+
+  if (symmetry) {
+    r.log.min <- log10(range[1])
+    r.log.max <- log10(range[2])
+
+    log.min <- log10(min(df))
+    log.max <- log10(max(df))
+
+    l <- abs(r.log.min - log.min)
+    r <- abs(r.log.max - log.max)
+
+    if (l <= 0.25 * r)
+      range[1] <- 10^(r.log.min - 1)
+    else if (r <= 0.25 * l)
+      range[2] <- 10^(r.log.max + 1)
   }
 
   unit <- units(data.pred[,1])
@@ -385,17 +452,71 @@ gof.plot <- function(pred.obs.data, value.lab,
   if (length(pch) <= 1 && is.na(pch))
     pch <- seq(from = 15, length.out = n.groups)
 
+
+  if (smart_tagging) {
+    groups <- as.character(groups[order(as.character(groups))])
+    tmp_g <- trimws(gsub("\\(.*", "", groups))
+    new_col <- col
+    new_pch <- pch
+    u_g <- unique(tmp_g)
+    for (i in 1:length(u_g)) {
+      idx <- which(grepl(u_g[i], groups))
+      new_col[idx] <- col[i]
+      new_pch[idx] <- pch[1:length(idx)]
+    }
+    col <- new_col
+    pch <- new_pch
+  }
+
   i <- 1
   cex <- unlist(list(...)["cex"])
   cex <- if (is.null(cex)) 1.0 else cex
   for (group in groups) {
     subset <- df[df$group == group,]
-    graphics::points(subset$obs, subset$pred, pch = pch[i], col = col[i], cex = cex)
+    graphics::points(subset$obs, subset$pred, pch = pch[i], col = col[i], cex = cex, lwd = cex)
     i <- i + 1
   }
 
-  graphics::legend("topleft", col = col, pch = pch, legend = groups,
-                   bty = "n",cex = legend.cex)
+  if (!is.na(split_at_group_tag)) {
+    sp_idx <- grep(split_at_group_tag, groups)
+    if (length(sp_idx) > 0) {
+      col_split <- col[sp_idx]
+      pch_split <- pch[sp_idx]
+      gr_split <- groups[sp_idx]
+
+      res <- .legend_lb(gr_split, col_split, pch_split)
+      col_split <- res$col
+      gr_split <- res$text
+      pch_split <- res$pch
+
+      if (!is.null(legend.titles[2])) {
+        col_split <- c(NA, col_split)
+        pch_split <- c(NA, pch_split)
+        gr_split <- c(bquote(bold(.(legend.titles[2]))), trimws(gr_split))
+      }
+
+      graphics::legend("bottomright", col = col_split, pch = pch_split, legend = as.expression(gr_split),
+                       bty = "n",cex = legend.cex, ncol = legend.ncol)
+
+      col <- col[-sp_idx]
+      pch <- pch[-sp_idx]
+      groups <- groups[-sp_idx]
+    }
+  }
+
+  res <- .legend_lb(groups, col, pch)
+  col <- res$col
+  groups <- res$text
+  pch <- res$pch
+
+  if (!is.null(legend.titles[1])) {
+    col <- c(NA, col)
+    pch <- c(NA, pch)
+    groups <- c(bquote(bold(.(legend.titles[1]))), trimws(groups))
+  }
+
+  graphics::legend("topleft", col = col, pch = pch, legend = as.expression(groups),
+                   bty = "n",cex = legend.cex, ncol = legend.ncol)
 }
 
 pred_obs_plot <- function(pred.obs.data,
@@ -411,6 +532,8 @@ pred_obs_plot <- function(pred.obs.data,
                      legend.cex = 1.25,
                      show.two.fold = F,
                      show.1.25.fold = F,
+                     split_at_group_tag = NA,
+                     legend.ncol = 1,
                      ...) {
 
   data <- pred.obs.data$data
@@ -475,17 +598,58 @@ pred_obs_plot <- function(pred.obs.data,
   if (length(pch) <= 1 && is.na(pch))
     pch <- seq(from = 15, length.out = n.groups)
 
-  i <- 1
   cex <- unlist(list(...)["cex"])
   cex <- if (is.null(cex)) 1.0 else cex
+  groups <- as.character(groups[order(as.character(groups))])
+
+  tmp_g <- trimws(gsub("\\(.*", "", groups))
+  new_col <- col
+  new_pch <- pch
+  u_g <- unique(tmp_g)
+  for (i in 1:length(u_g)) {
+    idx <- which(grepl(u_g[i], groups))
+    new_col[idx] <- col[i]
+    new_pch[idx] <- pch[1:length(idx)]
+  }
+  col <- new_col
+  pch <- new_pch
+
+  i <- 1
   for (group in groups) {
     subset <- data %>% dplyr::filter(.[[group_by]] == group)
-    graphics::points(subset$Obs, subset$Pred, pch = pch[i], col = col[i], cex = cex)
+    graphics::points(subset$Obs, subset$Pred, pch = pch[i], col = col[i], cex = cex, lwd = cex)
     i <- i + 1
   }
 
-  graphics::legend("topleft", col = col, pch = pch, legend = groups,
-                   bty = "n",cex = legend.cex)
+  if (!is.na(split_at_group_tag)) {
+    sp_idx <- grep(split_at_group_tag, groups)
+    if (length(sp_idx) > 0) {
+      col_split <- col[sp_idx]
+      pch_split <- pch[sp_idx]
+      gr_split <- groups[sp_idx]
+
+      res <- .legend_lb(gr_split, col_split, pch_split)
+      col_split <- res$col
+      gr_split <- res$text
+      pch_split <- res$pch
+
+      graphics::legend("bottomright", col = col_split, pch = pch_split, legend = trimws(gr_split),
+                       bty = "n",cex = legend.cex, ncol = legend.ncol)
+
+      col <- col[-sp_idx]
+      pch <- pch[-sp_idx]
+      groups <- groups[-sp_idx]
+    }
+  }
+
+  res <- .legend_lb(groups, col, pch)
+  col <- res$col
+  groups <- res$text
+  pch <- res$pch
+
+  graphics::legend("topleft", col = col, pch = pch, legend = trimws(groups),
+                   bty = "n",cex = legend.cex, ncol = legend.ncol)
+
 }
 
 

@@ -15,7 +15,8 @@
 
 
 # extract molecule column information and unit
-.id.molecule.cols <- function(df, match.tag, add.match.tags = c(), is.fraction = F, fixed.unit = NA) {
+.id.molecule.cols <- function(df, match.tag, add.match.tags = c(), is.fraction = F, fixed.unit = NA,
+                              silent = F) {
   col.names <- tolower(colnames(df))
   match.tag <- tolower(match.tag)
   if (length(add.match.tags) > 0) {
@@ -34,6 +35,9 @@
   n.cols <- length(col.nrs)
 
   if (n.cols < 1) {
+    if (silent)
+      return(NULL)
+
     stop(paste("Could not identify value column for match tag <", match.tag, ">"))
   }
 
@@ -56,11 +60,11 @@
 }
 
 
-.id.col <- function(df, match) {
-  col.names <- tolower(colnames(df))
+.id.col <- function(df, match, fixed = TRUE) {
+  col.names <- trimws(tolower(colnames(df)))
   match <- tolower(match)
 
-  col.nr <- which(grepl(match, col.names, fixed = TRUE))
+  col.nr <- which(grepl(match, col.names, fixed = fixed))
 
   if (identical(col.nr, integer(0))) {
     return(NA)
@@ -343,15 +347,35 @@ read.obs.profiles <- function(file,
   }
 
   group.col <- .id.col(ref.sheet, "Group")
-  if (is.na(group.col)) {
+  if (is.na(group.col[1])) {
     stop(paste("File <", base.name, ">: Could not identify Group column in reference sheet"))
   }
 
-  ref.sheet <- ref.sheet[c(id.col, mol.col, ref.col, group.col)]
-  colnames(ref.sheet) <- c("ID", "MOL", "REF", "GROUP")
+    cite.col <- .id.col(ref.sheet, "Citekey")
+  if (is.na(cite.col)) {
+    stop(paste("File <", base.name, ">: Could not identify Citekey column in reference sheet"))
+  }
+
+  dose.col <- .id.col(ref.sheet, "^Dose", fixed = FALSE)
+  if (is.na(dose.col)) {
+    stop(paste("File <", base.name, ">: Could not identify Dose column in reference sheet"))
+  }
+
+  dunit.col <- .id.col(ref.sheet, "Unit Dose")
+  if (is.na(dunit.col)) {
+    stop(paste("File <", base.name, ">: Could not identify Unit Dose column in reference sheet"))
+  }
+
+  route.col <- .id.col(ref.sheet, "Route")
+  if (is.na(route.col)) {
+    stop(paste("File <", base.name, ">: Could not identify Unit Route column in reference sheet"))
+  }
+  ref.sheet <- ref.sheet[c(id.col, mol.col, ref.col, group.col, cite.col, dose.col, dunit.col, route.col)]
+  colnames(ref.sheet) <- c("ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY", "DOSE", "DOSEUNIT", "ROUTE")
   ref.sheet$ID <- trimws(ref.sheet$ID)
   ref.sheet$GROUP <- trimws(ref.sheet$GROUP)
-
+  ref.sheet$GROUP2 <- trimws(ref.sheet$GROUP2)
+  ref.sheet$GROUP3 <- trimws(ref.sheet$GROUP3)
   id.mol.list <- list()
   for (i in 1:length(ref.sheet$MOL)) {
     mol <- ref.sheet$MOL[i]
@@ -416,10 +440,17 @@ read.obs.profiles <- function(file,
       ))
       data <- data[!dup.times, ]
     }
+
     entry <- list(
       molecule = id.mol.list[[i]],
       reference = gsub("\r\n", "\n", ref.sheet$REF[i]),
+      citekey = trimws(ref.sheet$CKEY[i]),
+      dose = trimws(ref.sheet$DOSE[i]),
+      dose.unit = trimws(ref.sheet$DOSEUNIT[i]),
+      route = trimws(ref.sheet$ROUTE[i]),
       group = ref.sheet$GROUP[i],
+      group2 = ref.sheet$GROUP2[i],
+      group3 = ref.sheet$GROUP3[i],
       id = id,
       time.unit = time.col$unit,
       value.unit = value.col$unit,
@@ -428,6 +459,10 @@ read.obs.profiles <- function(file,
       data.type = "mean",
       origin = "obs"
     )
+
+    colnames(ref.sheet) <- c("ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY", "DOSE", "DOSEUNIT", "ROUTE")
+
+
     class(entry) <- "profile"
 
     results <- c(results, list(entry))
@@ -690,7 +725,9 @@ read.sim.profiles.from.master <- function(master.data,
                                           file.format = c("auto", "xsl", "csv"),
                                           file.csv.sep = ",",
                                           file.csv.dec = ".",
-                                          action.on.multimatch = c("stop", "warning", "message", "silent")) {
+                                          action.on.multimatch = c("stop", "warning", "message", "silent"),
+                                          multifile.enties = F
+                                          ) {
   if (!is.master(master.data)) {
     stop("Input must be of class master")
   }
@@ -730,13 +767,13 @@ read.sim.profiles.from.master <- function(master.data,
     )
 
     # find entry in sim.data
-    sheet_entry <- NA
+    sheet_entry <- list()
     prev_matches <- NA
     for (sheet in sim.data) {
       matches <- .id.col(sheet, paste0(id, "|"))
       if (length(matches) > 1 || !is.na(matches)) {
         # found it and check for double entry
-        if (is.data.frame(sheet_entry)) {
+        if (!multifile.enties && is.data.frame(sheet_entry)) {
           multi.action(paste0(
             "Found ambiguous entry for ID < ", id, " >",
             "\n Matched      : < ", paste0(colnames(sheet)[matches], " > IN:\n", .get.sheet.info.str(sheet)),
@@ -745,28 +782,53 @@ read.sim.profiles.from.master <- function(master.data,
           multi.action("Selected the FIRST match !\n")
         } else {
           prev_matches <- paste0("< ", colnames(sheet)[matches], " > IN:\n", .get.sheet.info.str(sheet))
-          sheet_entry <- sheet
+          if (multifile.enties)
+            sheet_entry <- append(sheet_entry, list(sheet))
+          else
+            sheet_entry[[1]] <- sheet
         }
       }
     }
 
-    if (!is.data.frame(sheet_entry)) {
+    if (length(sheet_entry) == 0) {
       stop(paste("Did not find entry <", id, ">"))
     }
 
+    # sheet entry is now a list of data.frames (sheets) that hold information about
+    # one of more molecules
+
     # extract time and molecule columns
-    time.info <- .id.time.col(sheet_entry)
     mol.infos <- list()
     for (mol in mols) {
-      match <- .id.molecule.cols(sheet_entry, mol$file.name.match,
-        mol$add.file.matcher,
-        is.fraction = mol$is.fraction, fixed.unit = mol$fixed.unit
-      )
+      match <- NULL
+      for (sheet in sheet_entry) {
+        match_tmp <- .id.molecule.cols(sheet, mol$file.name.match,
+                                       mol$add.file.matcher, is.fraction = mol$is.fraction,
+                                       fixed.unit = mol$fixed.unit, silent = TRUE)
+        # found the same entry in multiple sheets
+        if (length(match_tmp) > 0 && length(match) > 0)
+          stop(paste("Ambiguous sheets found for tag <", mol$file.name.match, ">"))
 
-      if (length(match$cols) > 1) {
-        stop(paste("Ambiguous column found for tag <", mol$file.name.match, ">"))
+        # found the same entry in multiple columns
+        if (length(match_tmp) > 0 && length(match_tmp$cols) > 1) {
+          stop(paste("Ambiguous column found for tag <", mol$file.name.match, ">"))
+        }
+
+        if (length(match_tmp) > 0) {
+          match <- match_tmp
+          match[["sheet"]] <- sheet
+        }
       }
 
+      if (length(match) == 0)
+        stop(paste("Could not find entry for tag <", mol$file.name.match, ">"))
+
+      #
+      #  result <- list(
+      #  id = match.tag,
+      #  cols = col.nrs,
+      #  unit = unit)
+      #
       mol.infos <- c(mol.infos, list(match))
     }
 
@@ -775,7 +837,9 @@ read.sim.profiles.from.master <- function(master.data,
     for (j in 1:length(mols)) {
       mol <- mols[[j]]
       mol.i <- mol.infos[[j]]
-      data <- data.frame(sheet_entry[, time.info$col], sheet_entry[, mol.i$cols], NA, NA)
+
+      time.info <- .id.time.col(mol.i$sheet)
+      data <- data.frame(mol.i$sheet[, time.info$col], mol.i$sheet[, mol.i$cols], NA, NA)
       colnames(data) <- c("Time", "Avg", "Min", "Max")
 
       dup.times <- duplicated(data$Time)

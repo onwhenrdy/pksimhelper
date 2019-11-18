@@ -12,7 +12,8 @@ molecule <- function(name,
                      ylab = "Plasma Concentration",
                      color = "black",
                      pch = 19,
-                     lty = 1) {
+                     lty = 1,
+                     in.legend = TRUE) {
 
   name <- paste(trimws(name))
 
@@ -72,7 +73,8 @@ molecule <- function(name,
                  lty = lty,
                  MW = MW,
                  fixed.unit = fixed.unit,
-                 is.fraction = is.fraction)
+                 is.fraction = is.fraction,
+                 in.legend = in.legend)
 
   class(result) <- "molecule"
   return(result)

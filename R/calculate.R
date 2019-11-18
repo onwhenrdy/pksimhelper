@@ -73,7 +73,9 @@ average.pop.profile <- function(profile,
 
 # calculate ranges of a profile
 range <- function(...) UseMethod("range")
-range.profile <- function(profile, range.type = c("time", "data")) {
+range.profile <- function(profile, range.type = c("time", "data"),
+                          smart.md = FALSE,
+                          smart.md.threshold = 15) {
   if (!is.profile(profile)) {
     stop("Input must be of class profile")
   }
@@ -87,12 +89,29 @@ range.profile <- function(profile, range.type = c("time", "data")) {
     data <- profile$data[-1]
   }
 
-  min <- NA
-  max <- NA
-  min <- min(data, na.rm = TRUE)
-  max <- max(data, na.rm = TRUE)
+  if (type == "time" && smart.md && length(data > 3)) {
+    d <- diff(data)
+    m_d <- mean(d)
+    groups <- which(d >= m_d * smart.md.threshold)
+    if (length(groups) > 0) {
+      groups <- c(0, groups, length(data))
+      if (any(diff(groups) == 1))
+      {
+        message(paste("Smart MD found <", length(groups) - 1 , "> groups",
+        "but with at least one single point group. Range will be computed without grouping."))
+      }
+      else {
+      message(paste("Smart MD found <", length(groups) - 1 , "> groups"))
 
-  return(c(min, max))
+      df <- data.frame(from = groups[-length(groups)] + 1, to = groups[-1])
+      res <- data.frame(t(apply(df, 1, function(x) c(data[x[1]], data[x[2]]))))
+      colnames(res) <- c("from", "to")
+      return(res)
+      }
+    }
+  }
+
+  return(base::range(data, na.rm = TRUE))
 }
 
 convert <- function(...) UseMethod("convert")
@@ -413,14 +432,20 @@ pred_vs_obs <- function(matched, obs.data,
                             Obs = od$data$Avg,
                             sim.id = matched$id,
                             exp.id = od$id,
+                            ref = od$reference,
+                            cite.key = od$citekey,
+                            dose = od$dose,
+                            dose.unit = od$dose.unit,
+                            admin.route = od$route,
                             group = od$group,
+                            group2 = od$group2,
+                            group3 = od$group3,
                             ref = od$reference,
                             mol.name = pro.mol$name,
                             mol.id = pro.mol$id)
 
     results$data <- rbind(results$data, result_df)
   }
-
   return(results)
 }
 
@@ -430,7 +455,8 @@ calculate.all.pred.obs <- function(matched.list, obs.data, time.unit, value.unit
                                    only.obs.times = F,
                                    interpol.method = c("linear", "spline"),
                                    interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
-                                   auc.method = c("linear", "linlog", "spline")) {
+                                   auc.method = c("linear", "linlog", "spline"),
+                                   smart.md.threshold = 15) {
 
   auc.method <- match.arg(auc.method)
 
@@ -441,7 +467,8 @@ calculate.all.pred.obs <- function(matched.list, obs.data, time.unit, value.unit
                               only.obs.times = only.obs.times,
                               interpol.method = interpol.method,
                               interpol.spline.method = interpol.spline.method,
-                              auc.method = auc.method)
+                              auc.method = auc.method,
+                              smart.md.threshold = smart.md.threshold)
     result <- rbind(result, tmp)
   }
 
@@ -455,7 +482,8 @@ calculate.pred.obs <- function(matched, obs.data,
                                only.obs.times = F,
                                interpol.method = c("linear", "spline"),
                                interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
-                               auc.method = c("linear", "linlog", "spline")) {
+                               auc.method = c("linear", "linlog", "spline"),
+                               smart.md.threshold = 15) {
 
   auc.method <- match.arg(auc.method)
 
@@ -494,16 +522,34 @@ calculate.pred.obs <- function(matched, obs.data,
     obs.max <- calculate.max(od)
     pred.max <- calculate.max(pro)
 
-    obs.range <- range(od, range.type = "time")
-    obs.auc <- calculate.auc(od, type = auc.method)
-    pred.auc <- calculate.auc(trim.time(pro, from = obs.range[1], to = obs.range[2]),
+
+    obs.range <- range(od, range.type = "time", smart.md = TRUE,
+                       smart.md.threshold = smart.md.threshold)
+    if (!is.null(nrow(obs.range))) {
+      split.obs <- apply(obs.range, 1, function(x) trim.time(od, x[1], x[2]))
+      split.pro <- apply(obs.range, 1, function(x) trim.time(pro, x[1], x[2]))
+
+      obs.auc <- sum(sapply(split.obs, calculate.auc, type = auc.method))
+      pred.auc <- sum(sapply(split.pro, calculate.auc, type = auc.method))
+
+    } else {
+
+      obs.auc <- calculate.auc(od, type = auc.method)
+      pred.auc <- calculate.auc(trim.time(pro, from = obs.range[1], to = obs.range[2]),
                               type = auc.method)
+    }
 
     tmp.res <- data.frame(
       sim.id = matched$id,
       exp.id = od$id,
       group = od$group,
+      group2 = od$group2,
+      group3 = od$group3,
       ref = od$reference,
+      cite.key = od$citekey,
+      dose = od$dose,
+      dose.unit = od$dose.unit,
+      admin.route = od$route,
       mol.name = pro.mol$name,
       mol.id = pro.mol$id,
       obs.value.max = obs.max$value.max,

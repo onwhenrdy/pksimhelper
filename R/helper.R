@@ -33,14 +33,17 @@ is.blank <- function(x){
 
 # gather ids from a profile list (e.g. observed data list)
 .gather.ids <- function(profile.list, ids) {
-  results = list()
+  if (length(ids) == 1 && is.na(ids))
+    return(list())
+
+  results = sapply(ids,function(x) NULL)
 
   for (profile in profile.list) {
     if (!is.profile(profile))
       stop("Entry in profile.list is not a profile")
 
     if (profile$id %in% ids)
-      results <- append(results, list(profile))
+      results[[profile$id]] <- profile
   }
 
   return(results)
