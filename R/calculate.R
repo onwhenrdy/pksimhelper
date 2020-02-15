@@ -157,7 +157,7 @@ convert.profile <- function(profile, time.unit = NA, value.unit = NA) {
 }
 
 # trims a data.set for a certain time interval
-trim.time <- function(profile, from = NA, to = NA) {
+trim.time <- function(profile, from = NA, to = NA, tol= .Machine$double.eps^0.5) {
   if (!is.profile(profile)) {
     stop("Input must be of class profile")
   }
@@ -172,7 +172,7 @@ trim.time <- function(profile, from = NA, to = NA) {
   }
 
   times <- profile$data$Time
-  idx <- which(times >= from & times <= to)
+  idx <- which(times >= from - tol & times <= to + to)
   idx <- sort(idx)
 
   result <- profile
@@ -231,8 +231,8 @@ merge.profile <- function(from, into, meta.data = c("into, from"),
   # bind data
   res.data <- rbind(into$data, from$data)
   res.data <- res.data[order(res.data$Time),]
-
   result$data <- res.data
+
   # check for valid results
   if (validate.result) {
     if (!is.valid(result)) {
@@ -283,7 +283,6 @@ interpol.profile <- function(in.profile,
     } else {
       if (method == "linear") {
         approx.data <- stats::approx(in.times, in.col, pattern.times)$y
-        print(tail(approx.data))
       } else {
         spline.fn <- stats::splinefun(in.times, in.col, method = spline.method)
         approx.data <- spline.fn(pattern.times)
@@ -296,7 +295,7 @@ interpol.profile <- function(in.profile,
   result.profile$data <- res.data
 
   if (!only.pattern.times) {
-    result.profile <- merge(result.profile, in.profile)
+    result.profile <- merge.profile(result.profile, in.profile)
   }
 
   if (conserve.time.unit) {
