@@ -267,6 +267,7 @@ read.pop.profiles <- function(file,
     class(entry) <- "profile"
     results <- c(results, list(entry))
   }
+
   # for every id
   ids <- sort(unique(df[, id.col]))
   for (id in ids) {
@@ -402,6 +403,11 @@ read.obs.profiles <- function(file,
   id.col <- .id.col(df, "ID")
   if (is.na(id.col)) {
     stop(paste("File <", base.name, ">: Could not identify ID column for observed sheet"))
+  }
+
+  if (nrow(df) < 1) {
+    message(paste("Parsed 0 oberved profiles - sheet is empty"))
+    return(list())
   }
 
   time.col <- .id.time.col(df)
@@ -611,8 +617,30 @@ read.master.file <- function(master.file,
   if ("obs" %in% colnames(df))
     df$obs <- as.character(df$obs)
 
+  # delete non-pop/sim lines
+  missing.lines <- c()
+  for (i in 1:nrow(df)) {
+
+    p.name <- trimws(df$pop[i])
+    s.name <- trimws(df$sim[i])
+    if ((p.name == "" || is.na(p.name))
+        && (s.name == "" || is.na(s.name))) {
+      message(paste("Skipped line", i, ": No population or simulation entry found."))
+      missing.lines <- c(missing.lines, i)
+
+    }
+  }
+
+  # check if sheet has entries
+  if (length(missing.lines > 0))
+    df <- df[-missing.lines,]
+  if (nrow(df) < 1) {
+    stop("No enties (rows) found in the sheet", call. = FALSE)
+  }
+
   # test for missing molecules
   for (i in 1:nrow(df)) {
+
     mols <- df$pop.mol
     mol.strs <- unlist(strsplit(mols, ",", fixed = TRUE))
     if (length(mol.strs) == 0) {

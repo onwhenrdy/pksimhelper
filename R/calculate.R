@@ -186,6 +186,10 @@ merge.profile <- function(from, into, meta.data = c("into, from"),
                           keep.duplicates = c("into", "from"),
                           validate.result = T) {
 
+  from$data$Time <- signif(from$data$Time)
+  into$data$Time <- signif(into$data$Time)
+
+
   if (!is.profile(from))
     stop("from must be of class profile")
 
@@ -231,8 +235,9 @@ merge.profile <- function(from, into, meta.data = c("into, from"),
   result$data <- res.data
   # check for valid results
   if (validate.result) {
-    if (!is.valid(result))
+    if (!is.valid(result)) {
       stop("Result is not a valid profile")
+    }
   }
 
   return(result)
@@ -278,6 +283,7 @@ interpol.profile <- function(in.profile,
     } else {
       if (method == "linear") {
         approx.data <- stats::approx(in.times, in.col, pattern.times)$y
+        print(tail(approx.data))
       } else {
         spline.fn <- stats::splinefun(in.times, in.col, method = spline.method)
         approx.data <- spline.fn(pattern.times)

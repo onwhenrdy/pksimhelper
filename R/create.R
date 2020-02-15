@@ -54,12 +54,19 @@ molecule <- function(name,
     pubchem.id <- data$PropertyTable.Properties.CID
     MW <- data$PropertyTable.Properties.MolecularWeight
 
+    if (length(pubchem.id) > 1) {
+      stop(paste("Fetching data from Pubchem for molecule <", name, ">: Ambiguous entries found with ids: ",
+                 paste(pubchem.id, collapse = ", ")), call. = F)
+    }
+
     if (is.null(MW))
       stop(paste("Fetching data from Pubchem for molecule <", name, "> failed"))
   }
 
   if (is.na(MW) || !is.numeric(MW))
     stop("MW must be numeric and not NA")
+
+
 
   result <- list(name = name,
                  display.name = display.name,

@@ -65,6 +65,7 @@ plot.profile <- function(profile,
     tmp.mol <- mols[[mol_idx]]
     has_sim <- Reduce(function(x,y) x || (y$molecule$id == tmp.mol$id && y$origin == "sim"), profile.list, FALSE)
     obs_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "obs") y$reference else "") , profile.list, "")
+    sim_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "sim") y$reference else ""), profile.list, "")
     if (!has_sim)
       mol.ltys[mol_idx] <- NA
 
@@ -72,6 +73,11 @@ plot.profile <- function(profile,
       mol.pch[mol_idx] <- NA
     else
       mol.names[mol_idx] <- paste0(mol.names[mol_idx], ", ", obs_ref)
+
+    if (nchar(obs_ref) == 0 && nchar(sim_ref)) {
+      mol.names[mol_idx] <- paste0(mol.names[mol_idx], ", ", sim_ref)
+    }
+
   }
 
   # sort by name
@@ -113,7 +119,7 @@ plot.matched <- function(matched, obs.data,
   if (!is.na(matched$obs.ids) && length(obs) != length(matched$obs.ids))
     stop(paste("Attention: Matched profiles with id < ", matched$id ,"> have missing observed data"))
 
-  has_obs <- length(obs) > 0
+  has_obs <- (length(obs) > 0) && sum(sapply(obs, length)) > 0
 
   # average profile data
   for (i in 1:length(matched$profiles)) {
@@ -151,7 +157,11 @@ plot.matched <- function(matched, obs.data,
       value.unit <- matched$profiles[[1]]$value.unit
   }
 
-  all.profiles <- append(obs, matched$profiles)
+  if (has_obs)
+    all.profiles <- append(obs, matched$profiles)
+  else
+    all.profiles <- matched$profiles
+
   for (i in 1:length(all.profiles)) {
     all.profiles[[i]] <- convert.profile(all.profiles[[i]], value.unit = value.unit, time.unit = time.unit)
   }
@@ -288,9 +298,6 @@ plot.matched <- function(matched, obs.data,
         pb <- 12
     }
 
-    print(pb)
-    print(xlim)
-
     axis.parameter <- list(prettybase = pb, side = 1, tcl = -0.5, usepar = T, minorn = -1)
     axis.parameter <- append(axis.parameter, main.plot.args)
     do.call(magicaxis::magaxis, axis.parameter)
@@ -368,6 +375,7 @@ gof.plot <- function(pred.obs.data, value.lab,
                      legend.cex = 1.25,
                      legend.ncol = 1,
                      legend.titles = NULL,
+                     show.prop = FALSE,
                      ...) {
 
   target.pred <- paste0("pred.", target)
@@ -440,6 +448,13 @@ gof.plot <- function(pred.obs.data, value.lab,
   graphics::abline(0 , 0.5, lty = 2, untf = T, lwd = lwd)
   graphics::abline(0, 1.25, lty = 3, untf = T, lwd = lwd)
   graphics::abline(0, 1/1.25, lty = 3, untf = T, lwd = lwd)
+
+  if (show.prop) {
+    graphics::curve(1 + 2*(x -1), add = TRUE, from= 1, to = range[2] * 10, lwd=lwd)
+    graphics::curve(1/(1 + 2*(1/x -1)), add = TRUE, to= 1, from = range[1] / 10, lwd=lwd)
+    graphics::curve(x**2 / (1 + 2*(x -1)), add = TRUE, from= 1, to = range[2] * 10, lwd=lwd)
+    graphics::curve(1/((1/x)**2 / (1 + 2*(1/x -1))), add = TRUE, to = 1, from = range[1] / 10, lwd=lwd)
+  }
 
   df <- cbind(df, pred.obs.data[group_by])
   colnames(df) <- c("pred", "obs", "group")
@@ -534,6 +549,7 @@ pred_obs_plot <- function(pred.obs.data,
                      show.1.25.fold = F,
                      split_at_group_tag = NA,
                      legend.ncol = 1,
+                     auto.grouping = TRUE,
                      ...) {
 
   data <- pred.obs.data$data
@@ -600,16 +616,20 @@ pred_obs_plot <- function(pred.obs.data,
 
   cex <- unlist(list(...)["cex"])
   cex <- if (is.null(cex)) 1.0 else cex
-  groups <- as.character(groups[order(as.character(groups))])
+  if (auto.grouping) {
+    groups <- as.character(groups[order(as.character(groups))])
+  }
 
-  tmp_g <- trimws(gsub("\\(.*", "", groups))
   new_col <- col
   new_pch <- pch
-  u_g <- unique(tmp_g)
-  for (i in 1:length(u_g)) {
-    idx <- which(grepl(u_g[i], groups))
-    new_col[idx] <- col[i]
-    new_pch[idx] <- pch[1:length(idx)]
+  if (auto.grouping) {
+    tmp_g <- trimws(gsub("\\(.*", "", groups))
+    u_g <- unique(tmp_g)
+    for (i in 1:length(u_g)) {
+      idx <- which(grepl(u_g[i], groups))
+      new_col[idx] <- col[i]
+      new_pch[idx] <- pch[1:length(idx)]
+    }
   }
   col <- new_col
   pch <- new_pch
