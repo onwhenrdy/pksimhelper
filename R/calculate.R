@@ -172,7 +172,7 @@ trim.time <- function(profile, from = NA, to = NA, tol= .Machine$double.eps^0.5)
   }
 
   times <- profile$data$Time
-  idx <- which(times >= from - tol & times <= to + to)
+  idx <- which(times >= from - tol & times <= to + tol)
   idx <- sort(idx)
 
   result <- profile
