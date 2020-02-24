@@ -9,7 +9,9 @@
 
 plot.profile <- function(profile,
                          poly.color = NA,
-                         poly.alpha = 0.5, ...) {
+                         poly.alpha = 0.5,
+                         log = FALSE,
+                         ...) {
 
   add.args <- list(...)
   if (is.na(poly.color)) {
@@ -34,13 +36,22 @@ plot.profile <- function(profile,
     }
 
   } else if (profile$origin == "obs" && profile$data.type == "mean") {
-    if (is.na(profile$data$Min[1]))
+    if (is.na(profile$data$Min[1])) {
       graphics::points(profile$data$Time, profile$data$Avg, ...)
-    else
+    } else {
+      min.data <- profile$data$Min
+      # handle negative mins for log-plots
+      if (log) {
+        neg.idx <- which(min.data <= 0)
+        if (length(neg.idx) > 0) {
+          min.data[neg.idx] <- NA
+        }
+      }
+
       suppressWarnings(
         gplots::plotCI(x = profile$data$Time, y = profile$data$Avg, gap = 0.0,
-            li = profile$data$Min, ui = profile$data$Max, add = TRUE, ...))
-
+            li = min.data, ui = profile$data$Max, add = TRUE, ...))
+    }
   } else {
     stop("Not implemented")
   }
@@ -192,14 +203,22 @@ plot.matched <- function(matched, obs.data,
 
 
     for (i in 1:length(all.profiles)) {
-      if (all.profiles[[i]]$data.type == "individual") {
+      # observed data with min-max can be plotted event with negative mins
+      if (all.profiles[[i]]$origin == "obs") {
+        tmp <- all.profiles[[i]]$data[1]
+        empty.idx <- which(tmp[-1] <= 0)
+        if (length(empty.idx) > 0) {
+          all.profiles[[i]]$data <- all.profiles[[i]]$data[-empty.idx,]
+        }
+      }
+      else if (all.profiles[[i]]$data.type == "individual" ) {
         tmp <- all.profiles[[i]]$data
         all.profiles[[i]]$data <- tmp[rowSums(tmp[-1] <= 0 ) == 0, ]
       } else {
-        tmp <- all.profiles[[i]]$data
-        row_sub = apply(tmp, 1, function(row) all(row > 0, na.rm = T))
-        all.profiles[[i]]$data <- tmp[row_sub,]
-      }
+          tmp <- all.profiles[[i]]$data
+          row_sub = apply(tmp, 1, function(row) all(row > 0, na.rm = T))
+          all.profiles[[i]]$data <- tmp[row_sub,]
+        }
     }
   }
 
@@ -311,7 +330,8 @@ plot.matched <- function(matched, obs.data,
       lwd = error.lwd
 
     graphics::plot(pro, col = pro$molecule$color,
-                   pch = pro$molecule$pch, lty = pro$molecule$lty, lwd = lwd, ...)
+                   pch = pro$molecule$pch, lty = pro$molecule$lty, lwd = lwd,
+                   log = is.log, ...)
   }
 
 

@@ -186,9 +186,8 @@ merge.profile <- function(from, into, meta.data = c("into, from"),
                           keep.duplicates = c("into", "from"),
                           validate.result = T) {
 
-  from$data$Time <- signif(from$data$Time)
-  into$data$Time <- signif(into$data$Time)
-
+  from$data$Time <- from$data$Time
+  into$data$Time <- into$data$Time
 
   if (!is.profile(from))
     stop("from must be of class profile")
@@ -235,7 +234,7 @@ merge.profile <- function(from, into, meta.data = c("into, from"),
 
   # check for valid results
   if (validate.result) {
-    if (!is.valid(result)) {
+    if (!is.valid(result, msg = "message")) {
       stop("Result is not a valid profile")
     }
   }
