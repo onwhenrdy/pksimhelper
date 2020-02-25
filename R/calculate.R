@@ -279,11 +279,11 @@ interpol.profile <- function(in.profile,
   in.time.range <- range.profile(in.profile, range.type = "time")
   patter.range <- range.profile(pattern.profile, range.type = "time")
   if (patter.range[1] < in.time.range[1] && .test.near(in.time.range[1], patter.range[1])) {
-    message("Profile Min less than Obs Min but close. Will try to fix this automatically.")
+    message("Profile Min times larger than Obs Min but close. Will try to fix this automatically.")
     in.profile$data$Time[0] = patter.range[1]
   }
   if (patter.range[2] > in.time.range[2] && .test.near(in.time.range[2], patter.range[2])) {
-    message("Profile Max larger than Obs Max but close. Will try to fix this automatically.")
+    message("Profile Max times less than Obs Max but close. Will try to fix this automatically.")
     in.profile$data$Time[length(in.profile$data$Time)] = patter.range[2]
   }
 
