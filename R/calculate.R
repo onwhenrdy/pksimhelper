@@ -181,6 +181,17 @@ trim.time <- function(profile, from = NA, to = NA, tol= .Machine$double.eps^0.5)
   return(result)
 }
 
+.test.near <- function(a,b) {
+  dplyr::near(a,b, .Machine$double.eps**(0.25))
+}
+
+.find.near.duplicates <- function(a, in_b) {
+  which(unlist(sapply(a, function(x) {
+    matches <- .test.near(x, in_b)
+    any(matches)
+  })))
+}
+
 merge.profile <- function(from, into, meta.data = c("into, from"),
                           units = c("check, into, from"),
                           keep.duplicates = c("into", "from"),
@@ -218,11 +229,13 @@ merge.profile <- function(from, into, meta.data = c("into, from"),
 
   # handle duplicates
   if (keep.duplicates == "into") {
-    from.duplicates <- which(from$data$Time %in% into$data$Time)
+    #from.duplicates <- which(from$data$Time %in% into$data$Time)
+    from.duplicates <- .find.near.duplicates(from$data$Time, into$data$Time)
     if (length(from.duplicates) > 0)
       from$data <- from$data[-from.duplicates,]
   } else {
-    into.duplicates <- which(into$data$Time %in% from$data$Time)
+    #into.duplicates <- which(into$data$Time %in% from$data$Time)
+    into.duplicates <- .find.near.duplicates(into$data$Time, from$data$Time)
     if (length(into.duplicates) > 0)
       into$data <- into$data[-into.duplicates,]
   }
@@ -264,7 +277,18 @@ interpol.profile <- function(in.profile,
 
   # check for time range
   in.time.range <- range.profile(in.profile, range.type = "time")
-  patter.range <- range.profile(in.profile, range.type = "time")
+  patter.range <- range.profile(pattern.profile, range.type = "time")
+  if (patter.range[1] < in.time.range[1] && .test.near(in.time.range[1], patter.range[1])) {
+    message("Profile Min less than Obs Min but close. Will try to fix this automatically.")
+    in.profile$data$Time[0] = patter.range[1]
+  }
+  if (patter.range[2] > in.time.range[2] && .test.near(in.time.range[2], patter.range[2])) {
+    message("Profile Max larger than Obs Max but close. Will try to fix this automatically.")
+    in.profile$data$Time[length(in.profile$data$Time)] = patter.range[2]
+  }
+
+  in.time.range <- range.profile(in.profile, range.type = "time")
+  patter.range <- range.profile(pattern.profile, range.type = "time")
   if (patter.range[1] < in.time.range[1] || patter.range[2] > in.time.range[2]) {
     stop("Pattern time range is not inside of in.profile range")
   }
@@ -318,6 +342,10 @@ interpol.profile <- function(in.profile,
   for (i in 2:length(times)) {
     t1 <- times[i - 1]
     t2 <- times[i]
+    if (dplyr::near(t1, t2)) {
+      next
+    }
+
     c1 <- values[i - 1]
     c2 <- values[i]
     if (c1 > c2 && c2 > 0.)
@@ -325,6 +353,8 @@ interpol.profile <- function(in.profile,
     else
       auc <- auc + 0.5 * (c1 + c2) * (t2 - t1)
   }
+
+
 
   return(auc)
 }
@@ -494,6 +524,10 @@ calculate.pred.obs <- function(matched, obs.data,
   obs <- .gather.ids(obs.data, matched$obs.ids)
   if (length(obs) == 0) {
     stop(paste("Attention: Matched profiles with id < ", matched$id, "> do not have any observed data"))
+  }
+
+  if (is.null(obs[[1]])) {
+    stop(paste("Attention: Matched profiles with id < ", matched$id, "> could not match observed data."))
   }
 
   if (!is.na(matched$obs.ids) && length(obs) != length(matched$obs.ids)) {

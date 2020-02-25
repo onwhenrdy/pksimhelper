@@ -638,6 +638,20 @@ read.master.file <- function(master.file,
     stop("No enties (rows) found in the sheet", call. = FALSE)
   }
 
+  # try to convert wrongly parsed obs ids to strings
+  obs.to.str <- function(x) {
+    suppressWarnings(num <- as.numeric(x))
+    if (is.na(num))
+      return(x)
+
+    if (num%%1==0)
+      return(x)
+
+    return(gsub("\\.", ",", x))
+  }
+  df$obs <- unlist(lapply(df$obs, obs.to.str))
+
+
   # test for missing molecules
   for (i in 1:nrow(df)) {
 
