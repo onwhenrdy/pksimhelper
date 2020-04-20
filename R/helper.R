@@ -121,6 +121,9 @@ is.blank <- function(x){
   if (tolower(overlap_clean) == "bpm")
     return(units::as_units("beats/min"))
 
+  if (tolower(overlap_clean) == "day(s)")
+    return(units::as_units("days"))
+
   unit <- tryCatch({
     units::as_units(overlap_clean)
   },

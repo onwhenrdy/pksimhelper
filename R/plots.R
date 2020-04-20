@@ -48,9 +48,12 @@ plot.profile <- function(profile,
         }
       }
 
-      suppressWarnings(
-        gplots::plotCI(x = profile$data$Time, y = profile$data$Avg, gap = 0.0,
-            li = min.data, ui = profile$data$Max, add = TRUE, ...))
+      dots <- list(...)
+      dots$lty = 1
+      args = list(x = profile$data$Time, y = profile$data$Avg, gap = 0.0,
+                  li = min.data, ui = profile$data$Max, add = TRUE)
+      args <- c(args, dots)
+      suppressWarnings(do.call(gplots::plotCI, args))
     }
   } else {
     stop("Not implemented")
@@ -75,7 +78,7 @@ plot.profile <- function(profile,
   for (mol_idx in 1:length(mols)) {
     tmp.mol <- mols[[mol_idx]]
     has_sim <- Reduce(function(x,y) x || (y$molecule$id == tmp.mol$id && y$origin == "sim"), profile.list, FALSE)
-    obs_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "obs") y$reference else "") , profile.list, "")
+    obs_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "obs" && nchar(x) == 0) y$reference else "") , profile.list, "")
     sim_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "sim") y$reference else ""), profile.list, "")
     if (!has_sim)
       mol.ltys[mol_idx] <- NA
@@ -115,6 +118,7 @@ plot.matched <- function(matched, obs.data,
                          sim.lwd = 2.8,
                          error.lwd = 1.8,
                          pretty.x.breaks = F,
+                         add.legend.text = NA,
                          legend.plot.args = list(x = "topright", cex = 1.25, lwd = 3, bty = "n"),
                          main.plot.args = list(bty = 'l', las = 1, cex.axis = 1.5, cex.lab = 1.7, cex = 1.5),
                          ...) {
@@ -130,6 +134,7 @@ plot.matched <- function(matched, obs.data,
   if (!is.na(matched$obs.ids) && length(obs) != length(matched$obs.ids))
     stop(paste("Attention: Matched profiles with id < ", matched$id ,"> have missing observed data"))
 
+  obs <- purrr::compact(obs)
   has_obs <- (length(obs) > 0) && sum(sapply(obs, length)) > 0
 
   # average profile data
@@ -337,6 +342,12 @@ plot.matched <- function(matched, obs.data,
 
   if (show.legend) {
     leg.data <- .legend.args(all.profiles)
+    if (!is.na(add.legend.text)) {
+      leg.data$legend <- c(leg.data$legend, add.legend.text)
+      leg.data$col <- c(leg.data$col, NA)
+      leg.data$lty <- c(leg.data$lty, NA)
+      leg.data$pch <- c(leg.data$pch, NA)
+    }
     do.call(graphics::legend, append(legend.plot.args, leg.data))
   }
 }
@@ -513,7 +524,11 @@ gof.plot <- function(pred.obs.data, value.lab,
   }
 
   if (!is.na(split_at_group_tag)) {
-    sp_idx <- grep(split_at_group_tag, groups)
+    if (is.numeric(split_at_group_tag)) {
+      sp_idx <- split_at_group_tag:length(groups)
+    } else {
+      sp_idx <- grep(split_at_group_tag, groups)
+    }
     if (length(sp_idx) > 0) {
       col_split <- col[sp_idx]
       pch_split <- pch[sp_idx]
@@ -662,7 +677,11 @@ pred_obs_plot <- function(pred.obs.data,
   }
 
   if (!is.na(split_at_group_tag)) {
-    sp_idx <- grep(split_at_group_tag, groups)
+    if (is.numeric(split_at_group_tag)) {
+      sp_idx <- split_at_group_tag:length(groups)
+    } else {
+      sp_idx <- grep(split_at_group_tag, groups)
+    }
     if (length(sp_idx) > 0) {
       col_split <- col[sp_idx]
       pch_split <- pch[sp_idx]

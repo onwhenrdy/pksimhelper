@@ -476,6 +476,7 @@ pred_vs_obs <- function(matched, obs.data,
                             group3 = od$group3,
                             ref = od$reference,
                             mol.name = pro.mol$name,
+                            mol.display.name = pro.mol$display.name,
                             mol.id = pro.mol$id)
 
     results$data <- rbind(results$data, result_df)
@@ -589,6 +590,7 @@ calculate.pred.obs <- function(matched, obs.data,
       dose.unit = od$dose.unit,
       admin.route = od$route,
       mol.name = pro.mol$name,
+      mol.display.name = pro.mol$display.name,
       mol.id = pro.mol$id,
       obs.value.max = obs.max$value.max,
       pred.value.max = pred.max$value.max,
@@ -644,7 +646,7 @@ cor.sspd <- function(pred, obs) {
 cor.zeta <- function(pred, obs) {
   pred <- .rm.units(pred)
   obs <- .rm.units(obs)
-  exp(stats::median(abs(log(pred / obs))) - 1)
+  exp(stats::median(abs(log(pred / obs)))) - 1
 }
 
 cor.max_ae <- function(pred, obs) max(abs(pred - obs))

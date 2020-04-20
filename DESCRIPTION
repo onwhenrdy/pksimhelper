@@ -1,7 +1,7 @@
 Package: pksimhelper
 Type: Package
 Title: Helps Evaluating PKSim Exported Data
-Version: 0.1.0
+Version: 0.2.0
 Author: Dominik Selzer <dominik.selzer@uni-saarland.de>
 uthors@R: person("Dominik", "Selzer", email = "ominik.selzer@uni-saarland.de",
   role = c("aut", "cre"))
