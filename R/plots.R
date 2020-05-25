@@ -573,6 +573,7 @@ pred_obs_plot <- function(pred.obs.data,
                      value.lab = "Concentration",
                      lwd = 1,
                      group_by = "ref",
+                     subgroup_by = NA,
                      match_by = NA,
                      match = NA,
                      col = NA,
@@ -587,6 +588,11 @@ pred_obs_plot <- function(pred.obs.data,
                      auto.grouping = TRUE,
                      ...) {
 
+
+  if (auto.grouping && !is.na(subgroup_by)) {
+    stop("auto.grouping and subgroup_by options are not compatible")
+  }
+
   data <- pred.obs.data$data
   if (!is.na(match[1]) && !is.na(match_by[1])) {
     data <- data %>% dplyr::filter(.[[match_by]] == match)
@@ -596,7 +602,11 @@ pred_obs_plot <- function(pred.obs.data,
     stop("pred.obs.data has not data attached or filter did not match")
   }
 
-  data <- dplyr::select(data, "Pred", "Obs", group_by)
+  if (!is.na(subgroup_by))
+    data <- dplyr::select(data, "Pred", "Obs", group_by, subgroup_by)
+  else
+    data <- dplyr::select(data, "Pred", "Obs", group_by)
+
   range <- range(data[1:2])
   if (nice.min) {
     range[1] <- 10^floor(log10(range[1]))
@@ -657,6 +667,7 @@ pred_obs_plot <- function(pred.obs.data,
 
   new_col <- col
   new_pch <- pch
+
   if (auto.grouping) {
     tmp_g <- trimws(gsub("\\(.*", "", groups))
     u_g <- unique(tmp_g)
@@ -669,12 +680,57 @@ pred_obs_plot <- function(pred.obs.data,
   col <- new_col
   pch <- new_pch
 
-  i <- 1
-  for (group in groups) {
-    subset <- data %>% dplyr::filter(.[[group_by]] == group)
-    graphics::points(subset$Obs, subset$Pred, pch = pch[i], col = col[i], cex = cex, lwd = cex)
-    i <- i + 1
+
+
+  ##########################################################################
+  tmp_groups <- groups
+  if (!is.na(subgroup_by)) {
+    col <- c()
+    pch <- c()
+    subgroups <- unique(data[[subgroup_by]])
+    groups <- c()
+    pch_map <- as.list(new_pch)
+    names(pch_map) <- subgroups
+
+    message("Point subgroup mapping:")
+    message(paste(paste(" ", names(pch_map)),
+                  pch_map,
+                  sep = " = ", collapse = "\n"))
   }
+
+  i <- 1
+  for (group in tmp_groups) {
+
+    subset <- data %>% dplyr::filter(.[[group_by]] == group)
+
+    # this is special handling !!
+    if (!is.na(subgroup_by)) {
+      for (sub in subgroups) {
+        subset_2 <- subset %>% dplyr::filter(.[[subgroup_by]] == sub)
+        if (nrow(subset_2) > 0) {
+          pch <- c(pch, pch_map[[sub]])
+          col <- c(col, new_col[i])
+          groups <- c(groups, as.character(subset_2[[group_by]][1]))
+          graphics::points(subset_2$Obs,
+                           subset_2$Pred,
+                           pch = pch_map[[sub]],
+                           col = new_col[i],
+                           cex = cex, lwd = cex)
+        }
+      }
+      i <- i + 1
+
+    } else  {
+      graphics::points(subset$Obs, subset$Pred,
+                       pch = pch[i],
+                       col = col[i],
+                       cex = cex, lwd = cex)
+      i <- i + 1
+    }
+  }
+
+  # Here: Groups, pch and cols must be set !!!
+  ####################################################################################
 
   if (!is.na(split_at_group_tag)) {
     if (is.numeric(split_at_group_tag)) {
