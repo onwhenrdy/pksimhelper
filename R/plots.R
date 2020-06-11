@@ -393,6 +393,7 @@ plot.matched <- function(matched, obs.data,
 gof.plot <- function(pred.obs.data, value.lab,
                      target, lwd = 1,
                      group_by = "group",
+                     subgroup_by = NA,
                      unit.lab = NULL,
                      col = NA,
                      pch = NA,
@@ -402,12 +403,19 @@ gof.plot <- function(pred.obs.data, value.lab,
                      nice.max = T,
                      symmetry = F,
                      smart_tagging = F,
+                     smart_tagging_pattern = "\\(.*",
                      split_at_group_tag = NA,
                      legend.cex = 1.25,
                      legend.ncol = 1,
                      legend.titles = NULL,
                      show.prop = FALSE,
                      ...) {
+
+
+  if (smart_tagging && !is.na(subgroup_by)) {
+    stop("smart_tagging and subgroup_by options are not compatible")
+  }
+
 
   target.pred <- paste0("pred.", target)
   target.obs <- paste0("obs.", target)
@@ -489,6 +497,11 @@ gof.plot <- function(pred.obs.data, value.lab,
 
   df <- cbind(df, pred.obs.data[group_by])
   colnames(df) <- c("pred", "obs", "group")
+  if (!is.na(subgroup_by)) {
+    df <- cbind(df, pred.obs.data[subgroup_by])
+    colnames(df) <- c("pred", "obs", "group", "subgroup")
+  }
+
   groups <- unique(df$group)
   n.groups <- length(groups)
 
@@ -498,10 +511,9 @@ gof.plot <- function(pred.obs.data, value.lab,
   if (length(pch) <= 1 && is.na(pch))
     pch <- seq(from = 15, length.out = n.groups)
 
-
   if (smart_tagging) {
     groups <- as.character(groups[order(as.character(groups))])
-    tmp_g <- trimws(gsub("\\(.*", "", groups))
+    tmp_g <- trimws(gsub(smart_tagging_pattern, "", groups))
     new_col <- col
     new_pch <- pch
     u_g <- unique(tmp_g)
@@ -514,13 +526,58 @@ gof.plot <- function(pred.obs.data, value.lab,
     pch <- new_pch
   }
 
-  i <- 1
   cex <- unlist(list(...)["cex"])
   cex <- if (is.null(cex)) 1.0 else cex
-  for (group in groups) {
+
+  new_col <- col
+  new_pch <- pch
+  ##########################################################################
+  tmp_groups <- groups
+  if (!is.na(subgroup_by)) {
+    col <- c()
+    pch <- c()
+    subgroups <- as.character(unique(df[["subgroup"]]))
+    groups <- c()
+    pch_map <- as.list(new_pch[1:length(subgroups)])
+    names(pch_map) <- subgroups
+
+    message("Point subgroup mapping:")
+    message(paste(paste(" ", names(pch_map)),
+                  pch_map,
+                  sep = " = ", collapse = "\n"))
+  }
+
+  i <- 1
+  for (group in tmp_groups) {
     subset <- df[df$group == group,]
-    graphics::points(subset$obs, subset$pred, pch = pch[i], col = col[i], cex = cex, lwd = cex)
-    i <- i + 1
+
+    if (!is.na(subgroup_by)) {
+      for (sub in subgroups) {
+
+        subset_2 <- subset %>% dplyr::filter(.[["subgroup"]] == sub)
+        if (nrow(subset_2) > 0) {
+          pch <- c(pch, pch_map[[sub]])
+          col <- c(col, new_col[i])
+          groups <- c(groups, as.character(subset_2[["group"]][1]))
+          graphics::points(subset_2$obs,
+                           subset_2$pred,
+                           pch = pch_map[[sub]],
+                           col = new_col[i],
+                           cex = cex,
+                           lwd = cex)
+        }
+      }
+
+      i <- i + 1
+    } else  {
+      graphics::points(subset$obs,
+                       subset$pred,
+                       pch = pch[i],
+                       col = col[i],
+                       cex = cex,
+                       lwd = cex)
+      i <- i + 1
+    }
   }
 
   if (!is.na(split_at_group_tag)) {
@@ -545,8 +602,13 @@ gof.plot <- function(pred.obs.data, value.lab,
         gr_split <- c(bquote(bold(.(legend.titles[2]))), trimws(gr_split))
       }
 
-      graphics::legend("bottomright", col = col_split, pch = pch_split, legend = as.expression(gr_split),
-                       bty = "n",cex = legend.cex, ncol = legend.ncol)
+      graphics::legend("bottomright",
+                       col = col_split,
+                       pch = pch_split,
+                       legend = as.expression(gr_split),
+                       bty = "n",
+                       cex = legend.cex,
+                       ncol = legend.ncol)
 
       col <- col[-sp_idx]
       pch <- pch[-sp_idx]
