@@ -558,12 +558,16 @@ calculate.pred.obs <- function(matched, obs.data,
                             spline.method = interpol.spline.method,
                             only.pattern.times = only.obs.times)
 
-    obs.max <- calculate.max(od)
-    pred.max <- calculate.max(pro)
 
-
+    # max values
     obs.range <- range(od, range.type = "time", smart.md = TRUE,
                        smart.md.threshold = smart.md.threshold)
+    pro_trimmed <- trim.time(pro, from = obs.range[1], to = obs.range[2])
+
+    obs.max <- calculate.max(od)
+    pred.max <- calculate.max(pro_trimmed)
+
+    # AUC
     if (!is.null(nrow(obs.range))) {
       split.obs <- apply(obs.range, 1, function(x) trim.time(od, x[1], x[2]))
       split.pro <- apply(obs.range, 1, function(x) trim.time(pro, x[1], x[2]))
@@ -572,10 +576,8 @@ calculate.pred.obs <- function(matched, obs.data,
       pred.auc <- sum(sapply(split.pro, calculate.auc, type = auc.method))
 
     } else {
-
       obs.auc <- calculate.auc(od, type = auc.method)
-      pred.auc <- calculate.auc(trim.time(pro, from = obs.range[1], to = obs.range[2]),
-                              type = auc.method)
+      pred.auc <- calculate.auc(pro_trimmed, type = auc.method)
     }
 
     tmp.res <- data.frame(
