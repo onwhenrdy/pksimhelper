@@ -560,14 +560,15 @@ calculate.pred.obs <- function(matched, obs.data,
 
 
     # max values
-    obs.range <- range(od, range.type = "time", smart.md = TRUE,
+    obs.range_full <- range(od, range.type = "time", smart.md = FALSE,
                        smart.md.threshold = smart.md.threshold)
-    pro_trimmed <- trim.time(pro, from = obs.range[1], to = obs.range[2])
-
+    pro_trimmed <- trim.time(pro, from = obs.range_full[1], to = obs.range_full[2])
     obs.max <- calculate.max(od)
     pred.max <- calculate.max(pro_trimmed)
 
     # AUC
+    obs.range <- range(od, range.type = "time", smart.md = TRUE,
+                       smart.md.threshold = smart.md.threshold)
     if (!is.null(nrow(obs.range))) {
       split.obs <- apply(obs.range, 1, function(x) trim.time(od, x[1], x[2]))
       split.pro <- apply(obs.range, 1, function(x) trim.time(pro, x[1], x[2]))
