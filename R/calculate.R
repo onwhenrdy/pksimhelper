@@ -13,6 +13,9 @@
 q16 <- function(values) stats::quantile(values, probs = 0.16, names = F)
 q84 <- function(values) stats::quantile(values, probs = 0.84, names = F)
 
+q05 <- function(values) stats::quantile(values, probs = 0.05, names = F)
+q95 <- function(values) stats::quantile(values, probs = 0.95, names = F)
+
 std.dev.min <- function(values) mean(values) - stats::sd(values)
 std.dev.max <- function(values) mean(values) + stats::sd(values)
 

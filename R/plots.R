@@ -369,8 +369,9 @@ plot.matched <- function(matched, obs.data,
   if (pos == "x")
     pos.id = 1
 
-  graphics::axis(pos.id, 10^pow, las = 1, labels = pow.labels, ...)
-  graphics::axis(pos.id, ticksat, labels = NA, tcl = -0.25, lwd = 0, lwd.ticks = 1, ...)
+  suppressWarnings(graphics::axis(pos.id, 10^pow, las = 1, labels = pow.labels, ...))
+  suppressWarnings(graphics::axis(pos.id, ticksat, labels = NA, tcl = -0.25, 
+                                  lwd = 0, lwd.ticks = 1, ...))
 }
 
 
@@ -842,5 +843,215 @@ axis.labels <- function(profile,
 
   return(c(x,y))
 }
+
+
+# can be function: file_prefix(profile, counter, fraction, linlog)
+plot_profiles <- function(profiles, observed_data, md_assist = NULL,
+                          plot_folder = NULL,
+                          format = c("pdf", "tiff", "png", "jpeg"),
+                          format_opts = NULL,
+                          file_prefix = NULL,
+                          counter_prefix = FALSE,
+                          x_unit = NA,
+                          y_unit = NA,
+                          xlab = "Time", 
+                          pretty_x_breaks = TRUE,
+                          plot_log = TRUE,
+                          plot_lin = TRUE,
+                          pop_fn = list(avg = geo.mean, min = geo.dev.min, max = geo.dev.max),
+                          geom = list(cex = 1.6, lwd = 3, err_lwd = 2.5, poly_alpha = 0.2),
+                          par_fn = NULL,
+                          plot_args = NULL,
+                          legend_args = NULL,
+                          panel_first = NULL,
+                          sanatize_id = TRUE,
+                          silent = FALSE,
+                          ...) {
+  
+  # validate
+  format <- match.arg(format)
+  
+  # prepare functions
+  msg_fn <- if (silent) function(x, nl = TRUE) {} else function(x, nl = TRUE) {message(x, appendLF = nl)}
+  
+  plot_fn <- function(file_name) {
+      do.call(format, append(list(file_name), format_opts))
+  }
+  
+  id_fn <- function(profile, counter, is_fraction, linlog = c("linear", "log")) {
+    
+    # for user functions
+    if (is.function(file_prefix)) {
+      
+      result <- file_prefix(profile, counter, is_fraction, linlog)
+      if(!is.character(result))
+        stop("file_prefix function does not return a string")  
+      return(result)
+    }
+    
+    id <- profile$id
+    if (sanatize_id)
+      id <- .sanatize_filename(id)
+    
+    
+    # standard is (prefix)_ID_(frac)_(1)[LOG/LIN]
+    result <- if (!is.null(file_prefix)) paste0(file_prefix, "_", id) else id
+    
+    if (is_fraction)
+      result <- paste0(result, "_frac")
+    
+    if (counter_prefix)
+      result <- paste0(result, "_", counter)
+    
+    result <- paste0(result, "_", toupper(linlog))
+    
+    return(result)
+  }
+  
+  units_fn <- function(profile, counter, is_fraction) {
+    
+    unit_time <- NA
+    unit_value <- NA
+    
+    if (is.function(x_unit))
+      unit_time <- x_unit(profile, counter, is_fraction)
+    else
+      unit_time <- x_unit
+    
+    if (is.function(y_unit))
+      unit_value <- y_unit(profile, counter, is_fraction)
+    else {
+      unit_value <- y_unit
+      if (!is.na(unit_value) && is_fraction)
+        unit_value <- as_units("%")
+    }
+    
+    result <- list(time = unit_time,
+                   value = unit_value)
+    
+    return(result)
+  }
+  
+  par_plot_fn <- function() {
+    
+    if (!is.null(par_fn))
+      par_fn()
+    else
+      par(mar = par()$mar + c(0, 2, 0, 0), mgp = par()$mgp + c(0.2, -0.0, 0))
+  }
+  
+  panel_fn <- function(profile, counter, is_fraction, linlog) {
+    if (!is.null(panel_first))
+      panel_first(profile, counter, is_fraction, linlog)
+  }
+  
+  
+  plot_lin_fn <- function(profile, counter, is_fraction) {
+    if (is.function(plot_lin))
+      return(plot_lin(profile, counter, is_fraction))
+    
+    return(plot_lin)
+  }
+  
+  plot_log_fn <- function(profile, counter, is_fraction) {
+    if (is.function(plot_log))
+      return(plot_log(profile, counter, is_fraction))
+    
+    return(plot_log && !is_fraction)
+  }
+  
+  ###############################################################################
+  if (is.null(names(pop_fn)))
+    names(pop_fn) <- c("avg", "min", "max")
+  avg.fn = pop_fn$avg
+  min.var.fn = pop_fn$min
+  max.var.fn = pop_fn$max
+  
+  main_plot_args <- if(!is.null(plot_args)) plot_args else list(bty = 'l', las = 0, cex.main = 1.6,
+                                                                cex.axis = 1.5, cex.lab = 1.5, 
+                                                                cex = 1.5)
+  
+  legend_plot_args <- if(!is.null(legend_args)) legend_args else list(x = "topright", cex = 1.4, 
+                                                                      lwd = 3, bty = "n", 
+                                                                      y.intersp = 1.2)
+  cex <- geom$cex
+  poly.alpha <- geom$poly_alpha
+  sim.lwd <- geom$lwd
+  error.lwd <- geom$err_lwd
+  
+  # plotting loop
+  counter <- 1
+  msg_fn(paste("Plotting to folder: <", plot_folder, ">"))
+  for (profile in profiles) {
+    msg_fn(paste("* Processing <", profile$id, ">"), nl = FALSE)
+    
+    is_fraction <- has_fraction(profile)
+    units <- units_fn(profile, counter, is_fraction)
+    
+    
+    # linear plots
+    p_lin <- plot_lin_fn(profile, counter, is_fraction)
+    msg_fn(paste("\tLin:", p_lin), nl = FALSE)
+    if (p_lin) {
+      
+      file_name <- paste0(id_fn(profile, counter, is_fraction, "linear"), ".", format)
+      full_name <- file.path(plot_folder, file_name)
+      
+      plot_fn(full_name)
+      par_plot_fn()
+      
+      plot.matched(profile, observed_data,
+                   avg.fn = avg.fn, min.var.fn = min.var.fn, max.var.fn = max.var.fn,
+                   time.unit = units$time, value.unit = units$value,
+                   xlab = xlab, pretty.x.breaks = pretty_x_breaks,
+                   poly.alpha = poly.alpha, cex = cex, sim.lwd = sim.lwd, error.lwd =error.lwd,
+                   
+                   add.legend.text = NA,
+                   
+                   legend.plot.args = legend_plot_args,
+                   main.plot.args = main_plot_args, 
+                   ylab = NA, show.main = T, show.legend = T, 
+                   rm.zero.neg.rows = F, ymax.rel.add = 0.0,
+                   panel.first = panel_fn(profile, counter, is_fraction, "linear"), ...)
+      
+      dev.off()
+    }
+    
+    # log plots
+    p_log <- plot_log_fn(profile, counter, is_fraction)
+    msg_fn(paste("\tLog:", p_log), nl = FALSE)
+    if (p_log) {
+      file_name <- paste0(id_fn(profile, counter, is_fraction, "log"), ".", format)
+      full_name <- file.path(plot_folder, file_name)
+      
+      plot_fn(full_name)
+      par_plot_fn()
+      
+      plot.matched(profile, observed_data,
+                   avg.fn = avg.fn, min.var.fn = min.var.fn, max.var.fn = max.var.fn,
+                   time.unit = units$time, value.unit = units$value,
+                   xlab = xlab, pretty.x.breaks = pretty_x_breaks,
+                   poly.alpha = poly.alpha, cex = cex, sim.lwd = sim.lwd, error.lwd =error.lwd,
+                   
+                   add.legend.text = NA,
+                   
+                   legend.plot.args = legend_plot_args,
+                   main.plot.args = append(main_plot_args,  list(log = "y")), 
+                   ylab = NA, show.main = T, show.legend = T, 
+                   rm.zero.neg.rows = F, ymax.rel.add = 0.0,
+                   panel.first = panel_fn(profile, counter, is_fraction, "log"), ...)
+      
+      dev.off()
+    }
+    msg_fn("")
+    
+    counter <- counter + 1
+  } 
+  
+  msg_fn(paste("Plotted <", counter - 1, "> profiles"))
+}
+
+
+
 
 

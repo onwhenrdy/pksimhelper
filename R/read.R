@@ -468,13 +468,11 @@ read.obs.profiles <- function(file,
 
     colnames(ref.sheet) <- c("ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY", "DOSE", "DOSEUNIT", "ROUTE")
 
-
     class(entry) <- "profile"
-
     results <- c(results, list(entry))
   }
 
-  message(paste("Parsed", length(ids), "oberved profiles"))
+  message(paste("Parsed <", length(ids), "> oberved profiles"))
   return(results)
 }
 
@@ -931,3 +929,224 @@ read.sim.profiles.from.master <- function(master.data,
 
   return(results)
 }
+
+
+read_molecule_file <- function(file,
+                               format = c("auto", "xsl", "csv"),
+                               csv.sep = ",",
+                               csv.dec = ".",
+                               xls.sheet = 1,
+                               silent = FALSE) {
+
+  base.name <- basename(file)
+  
+  if (!.does.file.exist(file)) {
+    stop(paste("File <", base.name, "> does not exist"))
+  }
+  
+  if (!.is.file.readable(file)) {
+    stop(paste("File <", base.name, "> is not readable"))
+  }
+  
+  format <- match.arg(format)
+  
+  if (format == "auto") {
+    format <- .identify.file.ext(file)
+    if (is.na(format)) {
+      stop(paste("File <", base.name, "> has unknown file extension. Please specify the format."))
+    }
+  }
+  
+  if (format == "tsv") {
+    format <- "csv"
+  }
+  
+  df <- NA
+  if (format == "xls") {
+    suppressMessages(excel.sheet <- readxl::read_excel(file,
+                                                       sheet = xls.sheet,
+                                                       col_names = TRUE
+    ))
+    df <- as.data.frame(excel.sheet)
+  }
+  
+  if (format == "csv") {
+    df <- .read.csv(
+      file = file, header = TRUE, sep = csv.sep, dec = csv.dec,
+      encoding = "UTF-8"
+    )
+  }
+  
+  c.names <- tolower(colnames(df))    
+  
+  name.idx <- which(grepl("name", c.names))
+  display.idx <- which(grepl("display", c.names))
+  id.idx <- which(grepl("id", c.names))
+  pubchem.idx <- which(grepl("pubchem", c.names))
+  color.idx <- which(grepl("color", c.names))
+  ylab.idx <- which(grepl("ylab", c.names))
+  pch.idx <- which(grepl("pch", c.names))
+  lty.idx <- which(grepl("lty", c.names))
+  mw.idx <- which(grepl("mw", c.names))
+  fixed.idx <- which(grepl("fixed", c.names))
+  fraction.idx <- which(grepl("fraction", c.names))
+  legend.idx <- which(grepl("legend", c.names))
+  match.idx <- which(grepl("match", c.names))
+  add.match.idx <- which(grepl("more", c.names))
+  
+  
+  if (length(name.idx) == 0 || length(name.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Name column."))
+  }
+  
+  if (length(display.idx) == 0 || length(display.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Display column."))
+  }
+  
+  if (length(id.idx) == 0 || length(id.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown ID column."))
+  }
+  
+  if (length(pubchem.idx) == 0 || length(pubchem.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Pubchem column."))
+  }
+  
+  if (length(color.idx) == 0 || length(color.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Color column."))
+  }
+  
+  if (length(ylab.idx) == 0 || length(ylab.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown ylab column."))
+  }
+  
+  if (length(pch.idx) == 0 || length(pch.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown pch column."))
+  }
+  
+  if (length(lty.idx) == 0 || length(lty.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown lty column."))
+  }
+  
+  if (length(mw.idx) == 0 || length(mw.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown MW column."))
+  }
+  
+  if (length(fixed.idx) == 0 || length(fixed.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Fixed Unit column."))
+  }
+  
+  if (length(fraction.idx) == 0 || length(fraction.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Is Fraction column."))
+  }
+  
+  if (length(legend.idx) == 0 || length(legend.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Show Legend column."))
+  }
+  
+  if (length(match.idx) == 0 || length(match.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown Match column."))
+  }
+  
+  if (length(add.match.idx) == 0 || length(add.match.idx) > 1) {
+    stop(paste("File <", base.name, "> has ambiguous or unknown More column."))
+  }
+  
+  
+  msg_fn <- if (silent) function(x, nl = TRUE) {} else function(x, nl = TRUE) {message(x, appendLF = nl)}
+  
+  molecules <- list()
+  
+  for (i in 1:nrow(df)) {
+    msg_fn(paste("* Parsing row <", i , ">"))
+    
+    name <- df[i, name.idx]
+    display.name <- df[i, display.idx]
+    id <- df[i, id.idx]
+    file.name.match <- df[i, match.idx]
+    pubchem.id <- df[i, pubchem.idx]
+    MW <- df[i, mw.idx]
+    
+    # pch
+    pch <- df[i, pch.idx]
+    if (is.na(pch))
+      pch <- 19
+    else
+      pch <- as.numeric(pch)
+    
+    # color
+    color <- df[i, color.idx]
+    if (is.na(color)) {
+      
+      color <- "black"
+    } else  {
+      rgb <- unlist(strsplit(color, ",", fixed = T))
+      if (length(rgb) > 1) {
+        if (length(rgb) != 4)
+          stop("Color in must be defined as string or RGBA separated by comma")
+        
+        rgb <- as.numeric(rgb)
+        color <- do.call(grDevices::rgb, append(rgb, list(maxColorValue = 255)))
+      }
+    }
+    
+    # ylab
+    ylab <- df[i, ylab.idx]
+    if (is.na(ylab))
+      ylab <- "Plasma Concentration"
+    
+    lty <-  df[i, lty.idx]
+    if (is.na(lty))
+      lty <- 1
+    else
+      lty <- as.numeric(lty)
+    
+      
+    # in legend
+    in.legend <- df[i, legend.idx]
+    if (is.na(in.legend)) {
+      
+      in.legend <- TRUE
+    } else {
+      in.legend <- .parse_logical(in.legend)
+      if (is.null(in.legend))
+        stop("Show Legend must be convertible to logical")
+    }
+    
+    # is fraction
+    is.fraction <- df[i, fraction.idx]
+    if (is.na(is.fraction)) {
+      
+      is.fraction <- FALSE
+    } else {
+      is.fraction <- .parse_logical(is.fraction)
+      if (is.null(is.fraction))
+        stop("Is Fraction must be convertible to logical")
+    }
+    
+    # fixed unit
+    fixed.unit <- df[i, fixed.idx]
+    if (!is.na(fixed.unit))
+      fixed.unit <- as_units(fixed.unit)
+    
+    # additional files matcher
+    add.file.matcher <- df[i, add.match.idx]
+    if (!is.na(add.file.matcher)) {
+      add.file.matcher <- base::trimws(unlist(strsplit(add.file.matcher, ",", fixed = T)))
+    }  
+    
+    mol <- molecule(name = name, display.name = display.name, id = id, 
+                    file.name.match = file.name.match, 
+                    add.file.matcher = add.file.matcher, 
+                    pubchem.id = pubchem.id, MW = MW, is.fraction = is.fraction, 
+                    fixed.unit = fixed.unit, 
+                    ylab = ylab, color = color, 
+                    pch = pch, lty = lty, in.legend = in.legend)
+    
+    molecules <- append(molecules, list(mol))
+  }
+  
+  msg_fn(paste("Created <", nrow(df), "> molecules"))
+  
+  return(molecules)
+}
+

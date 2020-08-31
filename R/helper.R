@@ -134,6 +134,17 @@ is.blank <- function(x){
   return(unit)
 }
 
+.has.units <- function(obj) {
+  inherits(obj, "units")
+}
+
+.rm.units <- function(obs) {
+  if (.has.units(obs))
+    obs <- units::drop_units(obs)
+  
+  return(obs)
+}
+
 .has.mol.unit <- function(unit) {
   if (units::deparse_unit(unit) == "")
     return(F)
@@ -346,13 +357,63 @@ is.valid.profile <- function(profile, msg = c("warning", "message", "error", "no
   return(!error)
 }
 
-.has.units <- function(obj) {
-  inherits(obj, "units")
+
+# sanatizes files names
+.sanatize_filename <- function(file) {
+  
+  file <- gsub(" +", "", file)
+  iconv(file, "latin1", "ASCII", sub = "x")
 }
 
-.rm.units <- function(obs) {
-  if (.has.units(obs))
-    obs <- units::drop_units(obs)
 
-  return(obs)
+# parses a string or number and tries to convert to logical (TRUE/FALASE)
+# Returns NULL if not possible
+.parse_logical <- function(input) {
+  
+  if (is.character(input)) {
+    
+    input <- trimws(tolower(input))
+    
+    if (input == "t" || input == "true" || 
+        input == "yes" || input == "1")
+      return(TRUE)
+    
+    if (input == "f" || input == "false" || 
+        input == "no" || input == "0")
+      return(FALSE)
+  }
+  else if (is.numeric(input)) {
+    
+    if (input == 1)
+      return(TRUE)
+    
+    if (input == 0)
+      return(FALSE)
+  }
+  
+  return(NULL)
 }
+
+
+
+#' Tests if a matched profiles has molecules with fraction unit
+#'
+#' @param profile A matched profile
+#'
+#' @return TRUE if the molecule of any profile has fraction unit else FALSE
+#'  
+has_fraction <- function(profile) {
+  
+  for (pro in profile$profiles) {
+    
+    if (pro$mol$is.fraction)
+      return(TRUE)
+    
+  }
+  
+  return(FALSE)
+}
+
+
+
+

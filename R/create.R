@@ -7,7 +7,7 @@ molecule <- function(name,
                      add.file.matcher = c(),
                      pubchem.id = NA,
                      MW = NA,
-                     is.fraction = F,
+                     is.fraction = FALSE,
                      fixed.unit = NA,
                      ylab = "Plasma Concentration",
                      color = "black",
@@ -66,8 +66,19 @@ molecule <- function(name,
   if (is.na(MW) || !is.numeric(MW))
     stop("MW must be numeric and not NA")
 
-
-
+  
+  if(!is.logical(is.fraction)) {
+    stop("is.fraction must be logical")
+  }
+  
+  if(!is.logical(in.legend)) {
+    stop("in.legend must be logical")
+  }
+  
+  if(!is.na(fixed.unit) && !.has.units(fixed.unit)) {
+    stop("fixed.unit must be of class units. Did you forget as_units(...)?")
+  }
+  
   result <- list(name = name,
                  display.name = display.name,
                  id = id,
@@ -89,3 +100,181 @@ molecule <- function(name,
 
 # molecule helper
 is.molecule <- function(x) inherits(x, "molecule")
+
+
+# clones a molecule
+molecule_clone <- function(molecule,
+                           name = NULL,
+                           display.name = NULL,
+                           id = NULL,
+                           file.name.match = NULL,
+                           add.file.matcher = NULL,
+                           pubchem.id = NULL,
+                           MW = NULL,
+                           is.fraction = NULL,
+                           fixed.unit = NULL,
+                           ylab = NULL,
+                           color = NULL,
+                           pch = NULL,
+                           lty = NULL,
+                           in.legend = NULL) {
+  
+  
+    mol <- molecule
+    
+    if (!is.null(name))
+      mol$name <- paste(trimws(name))
+    
+    if (!is.null(id))
+      mol$id <- paste(trimws(id))
+    
+    if (!is.null(name))
+      mol$name <- name
+    
+    if (!is.null(file.name.match))
+      mol$file.name.match <- paste(trimws(file.name.match))
+    
+    if (!is.null(add.file.matcher))
+      mol$add.file.matcher <- c(add.file.matcher)
+    
+    if (!is.null(pubchem.id))
+      mol$pubchem.id <- pubchem.id
+    
+    if (!is.null(MW)) {
+      if (is.na(MW) || !is.numeric(MW))
+        stop("MW must be numeric and not NA")
+      mol$MW <- MW
+    }
+    
+    if (!is.null(is.fraction)) {
+      if(!is.logical(is.fraction))
+        stop("is.fraction must be logical")
+      
+      mol$is.fraction <- is.fraction
+    }
+    
+    if (!is.null(fixed.unit))
+      mol$fixed.unit <- fixed.unit
+    
+    if (!is.null(ylab))
+      mol$ylab <- ylab
+    
+    if (!is.null(color))
+      mol$color <- color
+    
+    if (!is.null(pch))
+      mol$pch <- pch
+    
+    if (!is.null(lty))
+      mol$lty <- lty
+    
+    if (!is.null(in.legend)) {
+      if(!is.logical(in.legend))
+        stop("in.legend must be logical")
+      
+      mol$in.legend <- in.legend
+    }
+    
+    return(mol)
+}
+
+
+combine_profiles <- function(profiles, 
+                             by_group = 1,
+                             rename_id_by_group = NULL,
+                             ref_group = NULL,
+                             ref_id = "control",
+                             silent = FALSE) {
+  
+  # prepare
+  msg_fn <- if (silent) function(x, nl = TRUE) {} else function(x, nl = TRUE) {message(x, appendLF = nl)}
+  
+  # error checks
+  if (!is.numeric(by_group) || by_group <= 0)
+    stop("by_group must be positiv numeric (e.g. 1 for group 1", call.= FALSE)
+  
+  if (!is.null(ref_group) && (!is.numeric(by_group) || by_group <= 0))
+    stop("ref_group must be positiv numeric (e.g. 1 for group 1", call.= FALSE)
+  
+  # gather groups
+  group_ids <- c()
+  for (pro in profiles) {
+    
+    if (length(pro$groups) < by_group)
+      stop("by_group idx is > lenght of profile groups", call. = FALSE)
+    
+    group_ids <- c(group_ids, pro$groups[by_group])  
+  }
+  
+  new_profiles <- list()
+  groups <- unique(group_ids)
+  msg_fn(paste("Found <", length(groups), "> groups"))
+  
+  # iterate over all combine-groups
+  for (g in groups) {
+    msg_fn(paste("* Combine profiles of group <", g, ">"))
+    
+    pro_list <- list()
+    idxs <- which(group_ids == g)
+    for (idx in idxs) {
+      pro_list <- append(pro_list, list(profiles[[idx]]))
+    }
+    
+    # check for ref
+    if (is.null(ref_group)) {
+    
+      combined_pro <- pro_list[[1]]
+      pro_list[[1]] <- NULL
+    } else  {
+      
+      combined_pro <- NULL
+      for (i in seq_along(pro_list)) {
+        if (length(pro_list[[i]]$groups) < ref_group)
+          stop("ref_group idx is > lenght of profile groups", call. = FALSE)
+        
+        if (pro_list[[i]]$groups[ref_group] == ref_id) {
+          combined_pro <- pro_list[[i]]
+          pro_list[[i]] <- NULL
+          break
+        }
+      }
+      
+      if (is.null(combined_pro))
+        stop(paste("Could not find ref_id <", ref_id, "> in profiles of group", call. = FALSE))
+    }
+    
+    # we gather in the first profile (profiles + observed ids)
+    for (pro in pro_list) {
+      
+      combined_pro$profiles <- append(combined_pro$profiles, pro$profiles)
+      if(!is.na(pro$obs.ids))
+        combined_pro$obs.ids <- append(combined_pro$obs.ids, pro$obs.ids)
+    }
+    
+    # rename id
+    if(!is.null(rename_id_by_group)) {
+      
+      if (!is.numeric(rename_id_by_group) || rename_id_by_group <= 0)
+        stop("rename_id_by_group must be positiv numeric (e.g. 1 for group 1", call.= FALSE)
+      
+      
+      if (length(combined_pro$groups) < rename_id_by_group)
+        stop("rename_id_by_group idx is > lenght of profile group", call. = FALSE)
+      
+      combined_pro$id <- combined_pro$groups[rename_id_by_group]
+    }
+    
+    # Check if we have duplicated OBS-IDs
+    if (any(duplicated(combined_pro$obs.ids)))
+      stop("Combined profiles with the same observed data IDs", call. = FALSE)
+    
+    
+    new_profiles <- append(new_profiles, list(combined_pro))
+  }
+  
+  return(new_profiles)
+}
+
+
+
+
