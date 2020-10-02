@@ -371,8 +371,24 @@ read.obs.profiles <- function(file,
   if (is.na(route.col)) {
     stop(paste("File <", base.name, ">: Could not identify Unit Route column in reference sheet"))
   }
-  ref.sheet <- ref.sheet[c(id.col, mol.col, ref.col, group.col, cite.col, dose.col, dunit.col, route.col)]
-  colnames(ref.sheet) <- c("ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY", "DOSE", "DOSEUNIT", "ROUTE")
+  
+  # optional since 0.5
+  pop.size.col <- .id.col(ref.sheet, "^N$", fixed = FALSE)
+  pop.size.col.name <- "N"
+  if (is.na(pop.size.col)) {
+    message(paste("File <", base.name, ">: Could not identify optional column 'N' in reference sheet."))
+    pop.size.col <- NULL
+    pop.size.col.name <- NULL
+  }
+  
+  col.names <- c("ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY", 
+                 "DOSE", "DOSEUNIT", "ROUTE", pop.size.col.name)
+  
+  ref.sheet <- ref.sheet[c(id.col, mol.col, ref.col, group.col, cite.col, 
+                           dose.col, dunit.col, route.col, pop.size.col,
+                           pop.size.col)]
+  colnames(ref.sheet) <- col.names
+  
   ref.sheet$ID <- trimws(ref.sheet$ID)
   ref.sheet$GROUP <- trimws(ref.sheet$GROUP)
   ref.sheet$GROUP2 <- trimws(ref.sheet$GROUP2)
@@ -382,14 +398,16 @@ read.obs.profiles <- function(file,
     mol <- ref.sheet$MOL[i]
     tmp.mol <- .find.molecule.from.id(molecules, mol)
     if (length(tmp.mol) < 2 && is.na(tmp.mol)) {
-      stop(paste("File <", base.name, ">: Could not find molecule with id <", mol, "> from the reference sheet"))
+      stop(paste("File <", base.name, ">: Could not find molecule with id <", mol, 
+                 "> from the reference sheet"), call. = FALSE)
     }
     id.mol.list <- c(id.mol.list, list(tmp.mol))
   }
 
   # checks
   if (length(ref.sheet$ID) != length(unique(ref.sheet$ID))) {
-    stop(paste("File <", base.name, ">: Found non-unique IDs in the reference sheet:", ref.sheet$ID[which(duplicated(ref.sheet$ID))]))
+    stop(paste("File <", base.name, ">: Found non-unique IDs in the reference sheet:", 
+               ref.sheet$ID[which(duplicated(ref.sheet$ID))]), call. = FALSE)
   }
 
   # observed data sheet
@@ -402,7 +420,8 @@ read.obs.profiles <- function(file,
   df <- as.data.frame(obs.sheet)
   id.col <- .id.col(df, "ID")
   if (is.na(id.col)) {
-    stop(paste("File <", base.name, ">: Could not identify ID column for observed sheet"))
+    stop(paste("File <", base.name, ">: Could not identify ID column for observed sheet"), 
+         call. = FALSE)
   }
 
   if (nrow(df) < 1) {
@@ -447,6 +466,10 @@ read.obs.profiles <- function(file,
       data <- data[!dup.times, ]
     }
 
+    # optionals since 0.5
+    N <- ref.sheet$N[i]
+    if (is.null(N)) N <- NA
+    
     entry <- list(
       molecule = id.mol.list[[i]],
       reference = gsub("\r\n", "\n", ref.sheet$REF[i]),
@@ -458,6 +481,7 @@ read.obs.profiles <- function(file,
       group2 = ref.sheet$GROUP2[i],
       group3 = ref.sheet$GROUP3[i],
       id = id,
+      N = N,
       time.unit = time.col$unit,
       value.unit = value.col$unit,
       data = data,
@@ -466,8 +490,7 @@ read.obs.profiles <- function(file,
       origin = "obs"
     )
 
-    colnames(ref.sheet) <- c("ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY", "DOSE", "DOSEUNIT", "ROUTE")
-
+    #colnames(ref.sheet) <- col.names
     class(entry) <- "profile"
     results <- c(results, list(entry))
   }
@@ -783,6 +806,7 @@ read.sim.profiles.from.master <- function(master.data,
     multi.action <- function(...) invisible(NULL)
   } # noop
 
+  group_names <- groups.master(master.data)
 
   results <- list()
   sim.data <- .read.all.sheet(sim.files,
@@ -918,9 +942,14 @@ read.sim.profiles.from.master <- function(master.data,
       x.offset = master$x.offset[i],
       main = master$main[i]
     )
-
+    
+    groups <- NULL
+    if (length(group_names) > 0)
+      groups <- as.character(master[i, group_names])
+    
     sim <- list(
       id = id, obs.ids = obs.ids, profiles = pro.results,
+      groups = groups,
       plot.infos = plot.infos
     )
     class(sim) <- "MatchedProfiles"
