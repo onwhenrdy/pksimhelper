@@ -282,11 +282,11 @@ interpol.profile <- function(in.profile,
   in.time.range <- range.profile(in.profile, range.type = "time")
   patter.range <- range.profile(pattern.profile, range.type = "time")
   if (patter.range[1] < in.time.range[1] && .test.near(in.time.range[1], patter.range[1])) {
-    message("Profile Min times larger than Obs Min but close. Will try to fix this automatically.")
+    message("Profile Min times larger than Obs Min but close. Will try to fix this.")
     in.profile$data$Time[0] = patter.range[1]
   }
   if (patter.range[2] > in.time.range[2] && .test.near(in.time.range[2], patter.range[2])) {
-    message("Profile Max times less than Obs Max but close. Will try to fix this automatically.")
+    message("Profile Max times less than Obs Max but close. Will try to fix this.")
     in.profile$data$Time[length(in.profile$data$Time)] = patter.range[2]
   }
 
@@ -738,4 +738,60 @@ cor.metrics.pred.obs <- function(df, groups = NULL) {
   }
 
   return(results)
+}
+
+
+
+calculate_ratios <- function(df, id.group = "group", effect.group = "group2", 
+                             control.name = "control", effect.name = "ddi",
+                             ref = c("control", "effect")) {
+  
+  ref <- match.arg(ref)
+  
+  ids <- unique(df[[id.group]])
+  effects <- unique(df[[effect.group]])
+  
+  # basic error handling
+  if (is.null(ids))
+    stop(paste("Could not find id.group <", id.group, "> in data.frame"), call. = FALSE)
+  
+  if (is.null(effects))
+    stop(paste("Could not find effect.group <", effect.group, "> in data.frame"), call. = FALSE)
+  
+  if (length(effects) != 2)
+    stop("Number of unique effect names in effect.group must be 2", call. = FALSE)
+  
+  if (!(control.name %in% effects))
+    stop(paste("Did not find control.name <", control.name, "> in effect.group"), call. = FALSE)
+  
+  if (!(effect.name %in% effects))
+    stop(paste("Did not find effect.name <", effect.name, "> in effect.group"), call. = FALSE)
+  
+  
+  result <- data.frame()
+  for (id in ids) {
+    tmp <- df[df[[id.group]] == id, ]
+    
+    effect.row <- tmp[tmp[[effect.group]] == effect.name, ]
+    control.row <- tmp[tmp[[effect.group]] == control.name, ]
+    
+    if(nrow(control.row) != 1)
+      stop(paste("Error for id.group <", id, ">: Expected one control entry"), call. = FALSE)
+    
+    if(nrow(effect.row) != 1)
+      stop(paste("Error for id.group <", id, ">: Expected one effect entry"), call. = FALSE)
+    
+    row <- if(ref == "control") control.row else effect.row
+    
+    row$obs.value.max  <- effect.row$obs.value.max / control.row$obs.value.max
+    row$pred.value.max  <- effect.row$pred.value.max / control.row$pred.value.max
+    row$obs.t.max  <- effect.row$obs.t.max / control.row$obs.t.max
+    row$pred.t.max  <- effect.row$pred.t.max / control.row$pred.t.max
+    row$obs.auc  <- effect.row$obs.auc / control.row$obs.auc
+    row$pred.auc  <- effect.row$pred.auc / control.row$pred.auc
+    
+    result <- rbind(result, row)
+  }
+  
+  return(result)
 }
