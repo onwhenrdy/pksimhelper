@@ -183,17 +183,26 @@ plot.matched <- function(matched, obs.data,
   }
 
   # new x-limits -> trim the data
-  if (!is.blank(matched$plot.infos$x.max) && !is.blank(matched$plot.infos$x.min)) {
-    x.min <- matched$plot.infos$x.min
-    units(x.min) <- time.unit
-    x.min <- units::drop_units(x.min)
-    x.max <- matched$plot.infos$x.max
-    units(x.max) <- time.unit
-    x.max <- units::drop_units(x.max)
+  if (!is.blank(matched$plot.infos$x.max) || !is.blank(matched$plot.infos$x.min)) {
+    
+    x.min <- NA
+    if (!is.blank(matched$plot.infos$x.min)) {
+      x.min <- matched$plot.infos$x.min
+      units(x.min) <- time.unit
+      x.min <- units::drop_units(x.min)
+    }
+    
+    x.max <- NA
+    if (!is.blank(matched$plot.infos$x.max)) {
+      x.max <- matched$plot.infos$x.max
+      units(x.max) <- time.unit
+      x.max <- units::drop_units(x.max)
+    }
 
     for (i in 1:length(all.profiles)) {
       all.profiles[[i]] <- trim.time(all.profiles[[i]], from = x.min, to = x.max)
     }
+    
   }
 
   is.log <-  ("log" %in% names(main.plot.args) &&
@@ -391,6 +400,7 @@ plot.matched <- function(matched, obs.data,
 }
 
 
+# Deprecated
 gof.plot <- function(pred.obs.data, value.lab,
                      target, lwd = 1,
                      group_by = "group",
@@ -412,7 +422,9 @@ gof.plot <- function(pred.obs.data, value.lab,
                      show.prop = FALSE,
                      ...) {
 
-
+  .Deprecated("plot_gof_pk")
+  
+  
   if (smart_tagging && !is.na(subgroup_by)) {
     stop("smart_tagging and subgroup_by options are not compatible")
   }
@@ -632,6 +644,7 @@ gof.plot <- function(pred.obs.data, value.lab,
                    bty = "n",cex = legend.cex, ncol = legend.ncol)
 }
 
+
 pred_obs_plot <- function(pred.obs.data,
                      value.lab = "Concentration",
                      lwd = 1,
@@ -650,7 +663,6 @@ pred_obs_plot <- function(pred.obs.data,
                      legend.ncol = 1,
                      auto.grouping = TRUE,
                      ...) {
-
 
   if (auto.grouping && !is.na(subgroup_by)) {
     stop("auto.grouping and subgroup_by options are not compatible")
@@ -755,17 +767,17 @@ pred_obs_plot <- function(pred.obs.data,
     pch_map <- as.list(new_pch)
     names(pch_map) <- subgroups
 
-    message("Point subgroup mapping:")
-    message(paste(paste(" ", names(pch_map)),
+    message("* Point subgroup mapping:")
+    message(paste(paste(" -", names(pch_map)),
                   pch_map,
-                  sep = " = ", collapse = "\n"))
+                  sep = " => ", collapse = "\n"))
   }
 
   i <- 1
   for (group in tmp_groups) {
 
-    subset <- data %>% dplyr::filter(.[[group_by]] == group)
-
+    #subset <- data %>% dplyr::filter(.[[group_by]] == group)
+    subset <- data[data[group_by] == group,]
     # this is special handling !!
     if (!is.na(subgroup_by)) {
       for (sub in subgroups) {
@@ -830,7 +842,6 @@ pred_obs_plot <- function(pred.obs.data,
 
 }
 
-
 axis.labels <- function(profile,
                         x.prefix = "Time",
                         y.prefix = "Concentration") {
@@ -843,7 +854,6 @@ axis.labels <- function(profile,
 
   return(c(x,y))
 }
-
 
 # can be function: file_prefix(profile, counter, fraction, linlog)
 plot_profiles <- function(profiles, observed_data, md_assist = NULL,
@@ -863,6 +873,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           par_fn = NULL,
                           plot_args = NULL,
                           legend_args = NULL,
+                          add_legend_text = NULL, # "N/n" or "text/text vector" or function (profile, counter, obs_data)
                           panel_first = NULL,
                           sanatize_id = TRUE,
                           silent = FALSE,
@@ -960,6 +971,57 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
     return(plot_log && !is_fraction)
   }
   
+  add_legend_fn <- function(profile, counter, obs_data) {
+    
+    if(is.character(add_legend_text)) {
+      
+      if (add_legend_text == "n" || add_legend_text == "N") {
+        
+        # number of subjects
+        tmp <- paste(add_legend_text, "=")
+        
+        # gather observed data
+        obs <- .gather.ids(obs_data, profile$obs.ids)
+        obs <- purrr::compact(obs)
+        if (length(obs) == 0)
+          return(NA)
+        
+        if (!is.na(profile$obs.ids) && length(obs) != length(profile$obs.ids))
+          stop(paste("Matched profiles with id < ", profile$id ,"> have missing observed data"))
+        
+
+        n_sub <- sapply(obs, function(x) {x$N})
+        n_sub <- unique(n_sub)
+        if (length(n_sub) > 1) {
+          msg_fn(paste("\n  * Found different N for observed data. First non-NA was used."))
+          
+          n_sub <- dplyr::first(na.omit(n_sub))
+        }
+        
+        return(paste(tmp, n_sub))
+        
+      } else {
+        # single string or vector of strings
+        if (length(add_legend_text) > 1)
+          return(add_legend_text[counter])
+        else
+          return(add_legend_text)
+      }
+      
+      
+    } else if (is.function(add_legend_text)) {
+      
+      # custom function
+      # gather observed data
+      obs <- .gather.ids(obs_data, profile$obs.ids)
+      obs <- purrr::compact(obs)
+      return(add_legend_text(profile, counter, obs))
+    }
+    
+    return(NA)
+  }
+  
+  
   ###############################################################################
   if (is.null(names(pop_fn)))
     names(pop_fn) <- c("avg", "min", "max")
@@ -989,6 +1051,8 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
     units <- units_fn(profile, counter, is_fraction)
     
     
+    add_led <- add_legend_fn(profile, counter, observed_data)
+    
     # linear plots
     p_lin <- plot_lin_fn(profile, counter, is_fraction)
     msg_fn(paste("\tLin:", p_lin), nl = FALSE)
@@ -1005,9 +1069,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    time.unit = units$time, value.unit = units$value,
                    xlab = xlab, pretty.x.breaks = pretty_x_breaks,
                    poly.alpha = poly.alpha, cex = cex, sim.lwd = sim.lwd, error.lwd =error.lwd,
-                   
-                   add.legend.text = NA,
-                   
+                   add.legend.text = add_led,
                    legend.plot.args = legend_plot_args,
                    main.plot.args = main_plot_args, 
                    ylab = NA, show.main = T, show.legend = T, 
@@ -1032,9 +1094,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    time.unit = units$time, value.unit = units$value,
                    xlab = xlab, pretty.x.breaks = pretty_x_breaks,
                    poly.alpha = poly.alpha, cex = cex, sim.lwd = sim.lwd, error.lwd =error.lwd,
-                   
-                   add.legend.text = NA,
-                   
+                   add.legend.text = add_led,
                    legend.plot.args = legend_plot_args,
                    main.plot.args = append(main_plot_args,  list(log = "y")), 
                    ylab = NA, show.main = T, show.legend = T, 
