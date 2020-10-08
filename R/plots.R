@@ -855,7 +855,7 @@ axis.labels <- function(profile,
   return(c(x,y))
 }
 
-# can be function: file_prefix(profile, counter, fraction, linlog)
+# TODO: md_assist
 plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           plot_folder = NULL,
                           format = c("pdf", "tiff", "png", "jpeg"),
@@ -877,6 +877,8 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           panel_first = NULL,
                           sanatize_id = TRUE,
                           silent = FALSE,
+                          parallel = FALSE,
+                          parallel.cores = "auto",
                           ...) {
   
   # validate
@@ -1042,14 +1044,34 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
   error.lwd <- geom$err_lwd
   
   # plotting loop
-  counter <- 1
   msg_fn(paste("Plotting to folder: <", plot_folder, ">"))
-  for (profile in profiles) {
+  
+  if (parallel) {
+    if (is.character(parallel.cores)) {
+      if (tolower(parallel.cores) == "auto")
+        parallel.cores <- min(parallel::detectCores(logical = FALSE), 
+                              max(1, floor(length(profiles) / 2)))
+      else
+        stop("parallel.cores must be auto or a positive number", call. = FALSE)
+    } else {
+      parallel.cores <- as.numeric(parallel.cores)
+      if (parallel.cores <= 0)
+        stop("parallel.cores must be a positive number")
+    }
+    
+    msg_fn(paste("Using <", parallel.cores, "> cores for parallel computing"))
+    doParallel::registerDoParallel(cores = parallel.cores)
+    on.exit(doParallel::stopImplicitCluster())
+  }
+  
+  `%doit%` <- if(parallel) foreach::`%dopar%` else foreach::`%do%`
+  foreach::foreach(i = 1:length(profiles)) %doit% {
+    profile <- profiles[[i]]
+    counter <- i
     msg_fn(paste("* Processing <", profile$id, ">"), nl = FALSE)
     
     is_fraction <- has_fraction(profile)
     units <- units_fn(profile, counter, is_fraction)
-    
     
     add_led <- add_legend_fn(profile, counter, observed_data)
     
@@ -1104,14 +1126,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
       dev.off()
     }
     msg_fn("")
-    
-    counter <- counter + 1
   } 
   
-  msg_fn(paste("Plotted <", counter - 1, "> profiles"))
+  msg_fn(paste("Plotted <", length(profiles), "> profiles"))
 }
-
-
-
-
-
