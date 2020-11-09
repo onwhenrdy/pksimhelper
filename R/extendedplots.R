@@ -49,7 +49,7 @@ plot_gof_pk <- function(pred.obs.data, #
                         ...) {
   
   # graphics reset
-  on.exit(layout(1))
+  on.exit(graphics::layout(1))
   opar<-par(no.readonly = TRUE)
   on.exit(suppressWarnings(par(opar)), add = TRUE, after=FALSE)
   
