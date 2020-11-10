@@ -739,8 +739,9 @@ pred_obs_plot <- function(pred.obs.data,
   groups <- dplyr::pull(unique(data[3]))
   n.groups <- length(groups)
 
-  if (length(col) <= 1 && is.na(col))
-    col <- seq(from = 1, length.out = n.groups)
+  col_df <- col
+  if (is.data.frame(col_df) || (length(col) <= 1 && is.na(col)))
+    col <- .get_distinct_colors(n.groups)
 
   if (length(pch) <= 1 && is.na(pch))
     pch <- seq(from = 15, length.out = n.groups)
@@ -751,6 +752,9 @@ pred_obs_plot <- function(pred.obs.data,
     groups <- as.character(groups[order(as.character(groups))])
   }
 
+  if (is.data.frame(col_df)) {
+    col <- .extract_color_map_col(col_df, groups)
+  }
   new_col <- col
   new_pch <- pch
 

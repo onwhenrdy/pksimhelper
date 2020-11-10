@@ -175,11 +175,13 @@ plot_gof_pk <- function(pred.obs.data, #
   groups <- unique(df$group)
   n.groups <- length(groups)
   
-  if (length(col) <= 1 && is.na(col))
+  col_df <- col
+  if (is.data.frame(col_df) || (length(col) <= 1 && is.na(col)))
     col <- .get_distinct_colors(n.groups)
   
   if (length(col) < n.groups)
     col <- rep(col, length.out = n.groups)
+  
   
   pch.n <- n.groups
   if (!is.na(subgroup_by))
@@ -193,6 +195,11 @@ plot_gof_pk <- function(pred.obs.data, #
   
   cex <- unlist(list(...)["cex"])
   cex <- if (is.null(cex)) 1.0 else cex
+  
+  
+  if (is.data.frame(col_df)) {
+    col <- .extract_color_map_col(col_df, groups)
+  }
   
   new_col <- col
   new_pch <- pch
@@ -221,8 +228,11 @@ plot_gof_pk <- function(pred.obs.data, #
         
         subset_2 <- subset %>% dplyr::filter(.[["subgroup"]] == sub)
         if (nrow(subset_2) > 0) {
+          new_color <- new_col[i] 
+          
+          
           pch <- c(pch, pch_map[[sub]])
-          col <- c(col, new_col[i])
+          col <- c(col, new_color)
           groups <- c(groups, as.character(subset_2[["group"]][1]))
           graphics::points(subset_2$obs,
                            subset_2$pred,
@@ -282,6 +292,7 @@ plot_gof_pk <- function(pred.obs.data, #
   }
   
   res <- .legend_lb(groups, col, pch)
+  
   col <- res$col
   groups <- res$text
   pch <- res$pch
@@ -297,3 +308,36 @@ plot_gof_pk <- function(pred.obs.data, #
   
   plot_fn_end()
 }
+
+
+color_map <- function(df, ref_column = "ref", col = NULL) {
+  
+  if (is.list(df))
+    df <- df$data
+  
+  reference <- df[[ref_column]]
+  if (is.null(reference))
+    stop("ref_column is not a column of df", call. = FALSE)
+    
+  reference <- unique(reference)
+  n <- length(reference)
+  
+  if (is.null(col))
+    col <- .get_distinct_colors(n)
+  
+  if (length(col) < n)
+    stop(paste("col must be of length <", n, ">"), call. = FALSE)
+  
+  
+  result <- data.frame(reference = reference, col = col[1:n])
+  return(result)
+}
+
+.extract_color_map_col <- function(map, keys) {
+  cols <- c()
+  for (key in keys) {
+    cols <- c(cols, map %>% dplyr::filter(reference == key) %>% pull(col))
+  }
+  return(cols)
+}
+
