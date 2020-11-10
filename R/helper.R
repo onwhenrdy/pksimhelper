@@ -1,3 +1,24 @@
+#' Pipe
+#'
+#' Put description here
+#'
+#' @importFrom magrittr %>%
+#' @name %>%
+#' @rdname pipe
+#' @export
+#' @param lhs,rhs specify what lhs and rhs are
+#' @examples
+#' # some examples if you want to highlight the usage in the package
+NULL
+
+
+.ls_override <- function(default, new) {
+  
+  res <- c(new, default)
+  res[!base::duplicated(names(res))]
+}
+
+
 # checks if input is a single character vector
 .is.single.string <- function(input) {
 

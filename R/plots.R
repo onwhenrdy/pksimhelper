@@ -1044,13 +1044,17 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
   min.var.fn = pop_fn$min
   max.var.fn = pop_fn$max
   
-  main_plot_args <- if(!is.null(plot_args)) plot_args else list(bty = 'l', las = 0, cex.main = 1.6,
-                                                                cex.axis = 1.5, cex.lab = 1.5, 
-                                                                cex = 1.5)
   
-  legend_plot_args <- if(!is.null(legend_args)) legend_args else list(x = "topright", cex = 1.4, 
-                                                                      lwd = 3, bty = "n", 
-                                                                      y.intersp = 1.2)
+  main_plot_args_def <- list(bty = 'l', las = 0, cex.main = 1.6,
+                             cex.axis = 1.5, cex.lab = 1.5, 
+                             cex = 1.5)
+  main_plot_args <- .ls_override(main_plot_args_def, plot_args)
+  
+  legend_plot_args_def <- list(x = "topright", cex = 1.4, 
+                               lwd = 3, bty = "n", 
+                               y.intersp = 1.2)
+  legend_plot_args <- .ls_override(legend_plot_args_def, legend_args)
+  
   cex <- geom$cex
   poly.alpha <- geom$poly_alpha
   sim.lwd <- geom$lwd
