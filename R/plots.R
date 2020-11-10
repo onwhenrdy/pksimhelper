@@ -60,7 +60,7 @@ plot.profile <- function(profile,
   }
 }
 
-.legend.args <- function(profile.list) {
+.legend.args <- function(profile.list, format = "{mol}, {ref}") {
 
   # find the number of unique molecules
   mols <- Map(function(x) if (x$molecule$in.legend) x$molecule else NULL, profile.list)
@@ -80,16 +80,26 @@ plot.profile <- function(profile,
     has_sim <- Reduce(function(x,y) x || (y$molecule$id == tmp.mol$id && y$origin == "sim"), profile.list, FALSE)
     obs_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "obs" && nchar(x) == 0) y$reference else "") , profile.list, "")
     sim_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "sim") y$reference else ""), profile.list, "")
+    
+    N <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "obs") y$N else ""), profile.list, "")
+    
     if (!has_sim)
       mol.ltys[mol_idx] <- NA
 
     if (nchar(obs_ref) == 0)
       mol.pch[mol_idx] <- NA
-    else
-      mol.names[mol_idx] <- paste0(mol.names[mol_idx], ", ", obs_ref)
-
+    else {
+      
+      mol <- mol.names[mol_idx]
+      ref <- obs_ref
+      mol.names[mol_idx] <- glue::glue(format)
+    }
+    
     if (nchar(obs_ref) == 0 && nchar(sim_ref)) {
-      mol.names[mol_idx] <- paste0(mol.names[mol_idx], ", ", sim_ref)
+      
+      mol <- mol.names[mol_idx]
+      ref <- sim_ref
+      mol.names[mol_idx] <- glue::glue(format)
     }
 
   }
@@ -121,6 +131,7 @@ plot.matched <- function(matched, obs.data,
                          add.legend.text = NA,
                          legend.plot.args = list(x = "topright", cex = 1.25, lwd = 3, bty = "n"),
                          main.plot.args = list(bty = 'l', las = 1, cex.axis = 1.5, cex.lab = 1.7, cex = 1.5),
+                         legend_format = "{mol}, {ref}",
                          ...) {
 
   if (!is.matched.profiles(matched))
@@ -350,7 +361,7 @@ plot.matched <- function(matched, obs.data,
 
 
   if (show.legend) {
-    leg.data <- .legend.args(all.profiles)
+    leg.data <- .legend.args(all.profiles, format = legend_format)
     if (!is.na(add.legend.text)) {
       leg.data$legend <- c(leg.data$legend, add.legend.text)
       leg.data$col <- c(leg.data$col, NA)
@@ -855,6 +866,7 @@ axis.labels <- function(profile,
   return(c(x,y))
 }
 
+
 # TODO: md_assist
 plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           plot_folder = NULL,
@@ -873,6 +885,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           par_fn = NULL,
                           plot_args = NULL,
                           legend_args = NULL,
+                          legend_format = "{mol}, {ref}",
                           add_legend_text = NULL, # "N/n" or "text/text vector" or function (profile, counter, obs_data)
                           panel_first = NULL,
                           sanatize_id = TRUE,
@@ -1096,6 +1109,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    main.plot.args = main_plot_args, 
                    ylab = NA, show.main = T, show.legend = T, 
                    rm.zero.neg.rows = F, ymax.rel.add = 0.0,
+                   legend_format = legend_format,
                    panel.first = panel_fn(profile, counter, is_fraction, "linear"), ...)
       
       dev.off()
