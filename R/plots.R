@@ -1135,6 +1135,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    main.plot.args = append(main_plot_args,  list(log = "y")), 
                    ylab = NA, show.main = T, show.legend = T, 
                    rm.zero.neg.rows = F, ymax.rel.add = 0.0,
+                   legend_format = legend_format,
                    panel.first = panel_fn(profile, counter, is_fraction, "log"), ...)
       
       dev.off()
