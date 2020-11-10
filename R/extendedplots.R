@@ -312,7 +312,7 @@ plot_gof_pk <- function(pred.obs.data, #
 
 color_map <- function(df, ref_column = "ref", col = NULL) {
   
-  if (is.list(df))
+  if (!is.data.frame(df))
     df <- df$data
   
   reference <- df[[ref_column]]
