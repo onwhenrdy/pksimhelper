@@ -614,9 +614,13 @@ calculate.pred.obs <- function(matched, obs.data,
 
 
 cor.mse <- function(pred, obs) sum((pred - obs)**2) / length(pred)
+
 cor.rmse <- function(pred, obs) sqrt(cor.mse(pred, obs))
+
 cor.mae <- function(pred, obs) sum(abs(pred - obs)) / length(pred)
+
 cor.mdae <- function(pred, obs) stats::median(abs(pred - obs))
+
 cor.mape <- function(pred, obs) {
   pred <- .rm.units(pred)
   obs <- .rm.units(obs)
@@ -630,6 +634,7 @@ cor.smape <- function(pred, obs) {
 }
 
 cor.me <- function(pred, obs) sum(pred - obs) / length(pred)
+
 cor.mpe <- function(pred, obs) {
   pred <- .rm.units(pred)
   obs <- .rm.units(obs)
@@ -642,11 +647,11 @@ cor.mdlq <- function(pred, obs) {
   stats::median(log(pred / obs))
 }
 
-cor.sspd <- function(pred, obs) {
+cor.sspb <- function(pred, obs) {
   pred <- .rm.units(pred)
   obs <- .rm.units(obs)
   mdlq <- cor.mdlq(pred, obs)
-  sign(mdlq) * (exp(mdlq) - 1)
+  sign(mdlq) * (exp(abs(mdlq)) - 1)
 }
 
 cor.zeta <- function(pred, obs) {
@@ -663,6 +668,7 @@ cor.max_ape <- function(pred, obs) {
 }
 
 cor.min_ae <- function(pred, obs) min(abs(pred - obs))
+
 cor.min_ape <- function(pred, obs) {
   pred <- .rm.units(pred)
   obs <- .rm.units(obs)
@@ -731,7 +737,7 @@ cor.metrics.pred.obs <- function(df, groups = NULL) {
       "ME" = cor.me(pred, obs),
       "MPE" = units::set_units(100 * cor.mpe(pred, obs), "%"), # in %
       "MdLQ" = cor.mdlq(pred, obs),
-      "SSPB" = units::set_units(100 * cor.sspd(pred, obs), "%"), # in %
+      "SSPB" = units::set_units(100 * cor.sspb(pred, obs), "%"), # in %
       "Zeta" = units::set_units(100 * cor.zeta(pred, obs), "%") # in %
     )
     results[[metric.name]] <- tmp
