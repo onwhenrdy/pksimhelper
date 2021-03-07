@@ -1,14 +1,19 @@
 Package: pksimhelper
 Type: Package
-Title: Helps Evaluating PKSim Exported Data
+Title: A PK-Sim/MoBi PBPK model evaluation package
+Description: A package to analyze and evaluate PBPK models build in PK-Sim and MoBi.
+  It allows the easy definition of simulated molecules or PD markers in different compartments
+  and the evaluation of models via data exported from PK-Sim and MoBi. The package allows the
+  generation of profile plots of single and population simulations and the calculation of 
+  basic NCA PK parameters (e.g. AUC, Cmax, tmax), the generation of Goodness-of-fit plots and 
+  DDI/DGI evaluations. All operations are unit-safe.
 URL: https://github.com/onwhenrdy/pksimhelper
 BugReports: https://github.com/onwhenrdy/pksimhelper/issues
-Version: 0.6.0
+Version: 0.6.1
 Author: Dominik Selzer <dominik.selzer@uni-saarland.de>
-uthors@R: person("Dominik", "Selzer", email = "ominik.selzer@uni-saarland.de",
+Authors@R: person("Dominik", "Selzer", email = "dominik.selzer@uni-saarland.de",
   role = c("aut", "cre"))
 Maintainer: Dominik Selzer <dominik.selzer@uni-saarland.de>
-Description: Package is part of the general-case workflow at the Clinical Pharmacy group at UdS Germany.
 License: GPL-3
 Encoding: UTF-8
 Depends: R (>= 3.6.0)
@@ -32,4 +37,4 @@ Imports:
 Suggests:
     testthat (>= 2.1.0),
     covr
-
+RoxygenNote: 7.1.1
