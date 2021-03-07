@@ -54,7 +54,8 @@ plot_gof_pk <- function(pred.obs.data, #
   on.exit(suppressWarnings(par(opar)), add = TRUE, after=FALSE)
   
   if ((nice.max && !is.na(max)) || (nice.min && !is.na(min))) {
-    warning("nice.min / nice.max and min / max was set. This combination unlikely does want you want.")
+    warning("nice.min / nice.max and min / max was set. This combination unlikely does want you want.",
+            call. = FALSE)
   }
   
   
