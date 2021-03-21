@@ -773,7 +773,6 @@ calculate_ratios <- function(df, id.group = "group", effect.group = "group2",
   if (!(effect.name %in% effects))
     stop(paste("Did not find effect.name <", effect.name, "> in effect.group"), call. = FALSE)
   
-  
   result <- data.frame()
   for (id in ids) {
     tmp <- df[df[[id.group]] == id, ]
@@ -784,19 +783,24 @@ calculate_ratios <- function(df, id.group = "group", effect.group = "group2",
     if(nrow(control.row) != 1)
       stop(paste("Error for id.group <", id, ">: Expected one control entry"), call. = FALSE)
     
-    if(nrow(effect.row) != 1)
-      stop(paste("Error for id.group <", id, ">: Expected one effect entry"), call. = FALSE)
+    if(nrow(effect.row) < 1)
+      stop(paste("Error for id.group <", id, ">: Expected at least one effect entry"), call. = FALSE)
     
-    row <- if(ref == "control") control.row else effect.row
+    n_eff_rows <- nrow(effect.row)
+    for (i in 1:n_eff_rows) {
     
-    row$obs.value.max  <- effect.row$obs.value.max / control.row$obs.value.max
-    row$pred.value.max  <- effect.row$pred.value.max / control.row$pred.value.max
-    row$obs.t.max  <- effect.row$obs.t.max / control.row$obs.t.max
-    row$pred.t.max  <- effect.row$pred.t.max / control.row$pred.t.max
-    row$obs.auc  <- effect.row$obs.auc / control.row$obs.auc
-    row$pred.auc  <- effect.row$pred.auc / control.row$pred.auc
-    
-    result <- rbind(result, row)
+      effect <- effect.row[i,]
+      row <- if(ref == "control") control.row else effect
+      
+      row$obs.value.max  <- effect$obs.value.max / control.row$obs.value.max
+      row$pred.value.max  <- effect$pred.value.max / control.row$pred.value.max
+      row$obs.t.max  <- effect$obs.t.max / control.row$obs.t.max
+      row$pred.t.max  <- effect$pred.t.max / control.row$pred.t.max
+      row$obs.auc  <- effect$obs.auc / control.row$obs.auc
+      row$pred.auc  <- effect$pred.auc / control.row$pred.auc
+      
+      result <- rbind(result, row)
+    }
   }
   
   return(result)
