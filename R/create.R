@@ -1,5 +1,27 @@
 
-# creates a molecule
+
+
+#' Title
+#'
+#' @param name 
+#' @param display.name 
+#' @param id 
+#' @param file.name.match 
+#' @param add.file.matcher 
+#' @param pubchem.id 
+#' @param MW 
+#' @param is.fraction 
+#' @param fixed.unit 
+#' @param ylab 
+#' @param color 
+#' @param pch 
+#' @param lty 
+#' @param in.legend 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 molecule <- function(name,
                      display.name = NA,
                      id = NA,
@@ -244,13 +266,24 @@ combine_profiles <- function(profiles,
     }
     
     # we gather in the first profile (profiles + observed ids)
+    x.offset <- list(profiles = rep(combined_pro$plot.infos$x.offset, length(combined_pro$profiles)), 
+                     obs = c(rep(combined_pro$plot.infos$x.offset, length(combined_pro$obs.ids))))
     for (pro in pro_list) {
       
       combined_pro$profiles <- append(combined_pro$profiles, pro$profiles)
-      if(!is.na(pro$obs.ids))
+      
+      x.offset$profiles <- c(x.offset$profiles, rep(pro$plot.infos$x.offset, 
+                                                    length(pro$profiles)))
+      
+      if(!is.na(pro$obs.ids)) {
         combined_pro$obs.ids <- append(combined_pro$obs.ids, pro$obs.ids)
+        
+        x.offset$obs <- c(x.offset$obs, rep(pro$plot.infos$x.offset, 
+                                            length(pro$obs.ids)))
+      }
     }
-    
+    combined_pro$plot.infos$x.offset <- x.offset
+      
     # rename id
     if(!is.null(rename_id_by_group)) {
       

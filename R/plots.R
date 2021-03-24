@@ -193,29 +193,8 @@ plot.matched <- function(matched, obs.data,
     all.profiles[[i]] <- convert.profile(all.profiles[[i]], value.unit = value.unit, time.unit = time.unit)
   }
 
-  # new x-limits -> trim the data
-  if (!is.blank(matched$plot.infos$x.max) || !is.blank(matched$plot.infos$x.min)) {
-    
-    x.min <- NA
-    if (!is.blank(matched$plot.infos$x.min)) {
-      x.min <- matched$plot.infos$x.min
-      units(x.min) <- time.unit
-      x.min <- units::drop_units(x.min)
-    }
-    
-    x.max <- NA
-    if (!is.blank(matched$plot.infos$x.max)) {
-      x.max <- matched$plot.infos$x.max
-      units(x.max) <- time.unit
-      x.max <- units::drop_units(x.max)
-    }
-
-    for (i in 1:length(all.profiles)) {
-      all.profiles[[i]] <- trim.time(all.profiles[[i]], from = x.min, to = x.max)
-    }
-    
-  }
-
+  
+  # LOG
   is.log <-  ("log" %in% names(main.plot.args) &&
                 grepl("y", main.plot.args[["log"]]))
 
@@ -247,16 +226,64 @@ plot.matched <- function(matched, obs.data,
     }
   }
 
-  if (!is.blank(matched$plot.infos$x.offset)) {
-    x_offset <- matched$plot.infos$x.offset
-    units(x_offset) <- time.unit
-    x_offset <- units::drop_units(x_offset)
-
-    for (i in 1:length(all.profiles)) {
-      all.profiles[[i]]$data$Time <- all.profiles[[i]]$data$Time - x_offset
+  
+  # x-offset
+  offset <- function(x_offsets, all_profiles) {
+    if(length(x_offsets) < length(all_profiles))
+      x_offsets <- rep(x_offsets, length(all_profiles))
+    
+    for (i in 1:length(all_profiles)) {
+      x_offset <- x_offsets[i]
+      units(x_offset) <- time.unit
+      x_offset <- units::drop_units(x_offset)
+      
+      all_profiles[[i]]$data$Time <- all_profiles[[i]]$data$Time - x_offset
+    }
+    
+    return(all_profiles)
+  }
+  
+  if (!is.blank(matched$plot.infos$x.offset))
+  {
+    # simple version
+    if (!is.list(matched$plot.infos$x.offset))
+      all.profiles <- offset(matched$plot.infos$x.offset, all.profiles)
+    else {
+      
+      obs_n <- if (!has_obs) 0 else length(obs)
+      if (has_obs) {
+        all.profiles[1:obs_n] <- offset(matched$plot.infos$x.offset$obs, all.profiles[1:obs_n])
+      }
+      
+      all.profiles[(obs_n+1):length(all.profiles)] <- offset(matched$plot.infos$x.offset$profiles, 
+                                                       all.profiles[(obs_n+1):length(all.profiles)])
     }
   }
 
+  # new x-limits -> trim the data
+  if (!is.blank(matched$plot.infos$x.max) || !is.blank(matched$plot.infos$x.min)) {
+    
+    x.min <- NA
+    if (!is.blank(matched$plot.infos$x.min)) {
+      x.min <- matched$plot.infos$x.min
+      units(x.min) <- time.unit
+      x.min <- units::drop_units(x.min)
+    }
+    
+    x.max <- NA
+    if (!is.blank(matched$plot.infos$x.max)) {
+      x.max <- matched$plot.infos$x.max
+      units(x.max) <- time.unit
+      x.max <- units::drop_units(x.max)
+    }
+    
+    for (i in 1:length(all.profiles)) {
+      all.profiles[[i]] <- trim.time(all.profiles[[i]], from = x.min, to = x.max)
+    }
+    
+  }
+  
+  # y-limits
   y.min <- NA
   y.max <- NA
   if (!is.blank(matched$plot.infos$y.max) && !is.blank(matched$plot.infos$y.min)) {
