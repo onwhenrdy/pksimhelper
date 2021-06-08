@@ -901,7 +901,7 @@ axis.labels <- function(profile,
 # TODO: md_assist
 plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           plot_folder = NULL,
-                          format = c("pdf", "tiff", "png", "jpeg"),
+                          format = c("pdf", "tiff", "png", "jpeg", "svg"),
                           format_opts = NULL,
                           file_prefix = NULL,
                           counter_prefix = FALSE,
