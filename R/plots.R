@@ -65,6 +65,10 @@ plot.profile <- function(profile,
   # find the number of unique molecules
   mols <- Map(function(x) if (x$molecule$in.legend) x$molecule else NULL, profile.list)
   mols <- mols[lengths(mols) != 0]
+  if (length(mols) == 0) {
+    return(NULL)
+  }
+
   unique_ids <- unlist(unique(Map(function(x) x$id, mols)))
   mols <- Map(function(x) for (m in mols) if (m$id == x) return(m) , unique_ids)
 
@@ -123,8 +127,8 @@ plot.matched <- function(matched, obs.data,
                          max.var.fn = std.dev.max,
                          rm.zero.neg.rows = F,
                          ymax.rel.add = 0.125,
-                         show.legend = T,
-                         show.main = T,
+                         show.legend = TRUE,
+                         show.main = TRUE,
                          sim.lwd = 2.8,
                          error.lwd = 1.8,
                          pretty.x.breaks = F,
@@ -401,7 +405,9 @@ plot.matched <- function(matched, obs.data,
       leg.data$lty <- c(leg.data$lty, NA)
       leg.data$pch <- c(leg.data$pch, NA)
     }
-    do.call(graphics::legend, append(legend.plot.args, leg.data))
+
+    if(!is.null(leg.data))
+      do.call(graphics::legend, append(legend.plot.args, leg.data))
   }
 }
 
@@ -924,6 +930,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           plot_args = NULL,
                           legend_args = NULL,
                           legend_format = "{mol}, {ref}",
+                          show_legend = TRUE,
                           add_legend_text = NULL, # "N/n" or "text/text vector" or function (profile, counter, obs_data)
                           panel_first = NULL,
                           sanatize_id = TRUE,
@@ -1022,6 +1029,13 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
       return(plot_log(profile, counter, is_fraction))
 
     return(plot_log && !is_fraction)
+  }
+
+  plot_legend_fn <- function(profile, counter) {
+    if (is.function(show_legend))
+      return(show_legend(profile, counter))
+
+    return(show_legend)
   }
 
   add_legend_fn <- function(profile, counter, obs_data) {
@@ -1129,6 +1143,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
     units <- units_fn(profile, counter, is_fraction)
 
     add_led <- add_legend_fn(profile, counter, observed_data)
+    show_the_legend <- plot_legend_fn(profile, counter)
 
     # linear plots
     p_lin <- plot_lin_fn(profile, counter, is_fraction)
@@ -1149,7 +1164,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    add.legend.text = add_led,
                    legend.plot.args = legend_plot_args,
                    main.plot.args = main_plot_args,
-                   ylab = ylab, show.main = T, show.legend = T,
+                   ylab = ylab, show.main = T, show.legend = show_the_legend,
                    rm.zero.neg.rows = F, ymax.rel.add = 0.0,
                    legend_format = legend_format,
                    panel.first = panel_fn(profile, counter, is_fraction, "linear"), ...)
@@ -1175,7 +1190,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    add.legend.text = add_led,
                    legend.plot.args = legend_plot_args,
                    main.plot.args = append(main_plot_args,  list(log = "y")),
-                   ylab = ylab, show.main = T, show.legend = T,
+                   ylab = ylab, show.main = T, show.legend = show_the_legend,
                    rm.zero.neg.rows = F, ymax.rel.add = 0.0,
                    legend_format = legend_format,
                    panel.first = panel_fn(profile, counter, is_fraction, "log"), ...)

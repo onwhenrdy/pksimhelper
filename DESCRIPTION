@@ -9,7 +9,7 @@ Description: A package to analyze and evaluate PBPK models build in PK-Sim and M
   DDI/DGI evaluations. All operations are unit-safe.
 URL: https://github.com/onwhenrdy/pksimhelper
 BugReports: https://github.com/onwhenrdy/pksimhelper/issues
-Version: 0.6.6
+Version: 0.6.7
 Author: Dominik Selzer <dominik.selzer@uni-saarland.de>
 Authors@R: person("Dominik", "Selzer", email = "dominik.selzer@uni-saarland.de",
   role = c("aut", "cre"))
