@@ -80,23 +80,23 @@ plot.profile <- function(profile,
     has_sim <- Reduce(function(x,y) x || (y$molecule$id == tmp.mol$id && y$origin == "sim"), profile.list, FALSE)
     obs_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "obs" && nchar(x) == 0) y$reference else "") , profile.list, "")
     sim_ref <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "sim") y$reference else ""), profile.list, "")
-    
+
     N <- Reduce(function(x,y) paste0(x, if (y$molecule$id == tmp.mol$id && y$origin == "obs") y$N else ""), profile.list, "")
-    
+
     if (!has_sim)
       mol.ltys[mol_idx] <- NA
 
     if (nchar(obs_ref) == 0)
       mol.pch[mol_idx] <- NA
     else {
-      
+
       mol <- mol.names[mol_idx]
       ref <- obs_ref
       mol.names[mol_idx] <- glue::glue(format)
     }
-    
+
     if (nchar(obs_ref) == 0 && nchar(sim_ref)) {
-      
+
       mol <- mol.names[mol_idx]
       ref <- sim_ref
       mol.names[mol_idx] <- glue::glue(format)
@@ -193,7 +193,7 @@ plot.matched <- function(matched, obs.data,
     all.profiles[[i]] <- convert.profile(all.profiles[[i]], value.unit = value.unit, time.unit = time.unit)
   }
 
-  
+
   # LOG
   is.log <-  ("log" %in% names(main.plot.args) &&
                 grepl("y", main.plot.args[["log"]]))
@@ -226,63 +226,63 @@ plot.matched <- function(matched, obs.data,
     }
   }
 
-  
+
   # x-offset
   offset <- function(x_offsets, all_profiles) {
     if(length(x_offsets) < length(all_profiles))
       x_offsets <- rep(x_offsets, length(all_profiles))
-    
+
     for (i in 1:length(all_profiles)) {
       x_offset <- x_offsets[i]
       units(x_offset) <- time.unit
       x_offset <- units::drop_units(x_offset)
-      
+
       all_profiles[[i]]$data$Time <- all_profiles[[i]]$data$Time - x_offset
     }
-    
+
     return(all_profiles)
   }
-  
+
   if (!is.blank(matched$plot.infos$x.offset))
   {
     # simple version
     if (!is.list(matched$plot.infos$x.offset))
       all.profiles <- offset(matched$plot.infos$x.offset, all.profiles)
     else {
-      
+
       obs_n <- if (!has_obs) 0 else length(obs)
       if (has_obs) {
         all.profiles[1:obs_n] <- offset(matched$plot.infos$x.offset$obs, all.profiles[1:obs_n])
       }
-      
-      all.profiles[(obs_n+1):length(all.profiles)] <- offset(matched$plot.infos$x.offset$profiles, 
+
+      all.profiles[(obs_n+1):length(all.profiles)] <- offset(matched$plot.infos$x.offset$profiles,
                                                        all.profiles[(obs_n+1):length(all.profiles)])
     }
   }
 
   # new x-limits -> trim the data
   if (!is.blank(matched$plot.infos$x.max) || !is.blank(matched$plot.infos$x.min)) {
-    
+
     x.min <- NA
     if (!is.blank(matched$plot.infos$x.min)) {
       x.min <- matched$plot.infos$x.min
       units(x.min) <- time.unit
       x.min <- units::drop_units(x.min)
     }
-    
+
     x.max <- NA
     if (!is.blank(matched$plot.infos$x.max)) {
       x.max <- matched$plot.infos$x.max
       units(x.max) <- time.unit
       x.max <- units::drop_units(x.max)
     }
-    
+
     for (i in 1:length(all.profiles)) {
       all.profiles[[i]] <- trim.time(all.profiles[[i]], from = x.min, to = x.max)
     }
-    
+
   }
-  
+
   # y-limits
   y.min <- NA
   y.max <- NA
@@ -327,10 +327,16 @@ plot.matched <- function(matched, obs.data,
   # labs
   units::units_options(parse = FALSE)
   xlab <- units::make_unit_label(xlab, time.unit)
-  if (is.na(ylab)) {
+  if (!is.expression(ylab) && is.na(ylab)) {
     ylab <- all.profiles[[1]]$molecule$ylab
+    if (grepl("expression", ylab)) {
+      ylab = ylab = eval(parse(text = ylab))
+    }
   }
-  ylab <- units::make_unit_label(ylab, value.unit)
+  ylab_unit <- units::make_unit_label("", value.unit)
+  ylab <- substitute(a ~ b, lapply(list(a = ylab,
+                                        b = ylab_unit), "[[", 1))
+
   units::units_options(parse = TRUE)
 
   # check for main
@@ -417,7 +423,7 @@ plot.matched <- function(matched, obs.data,
     pos.id = 1
 
   suppressWarnings(graphics::axis(pos.id, 10^pow, las = 1, labels = pow.labels, ...))
-  suppressWarnings(graphics::axis(pos.id, ticksat, labels = NA, tcl = -0.25, 
+  suppressWarnings(graphics::axis(pos.id, ticksat, labels = NA, tcl = -0.25,
                                   lwd = 0, lwd.ticks = 1, ...))
 }
 
@@ -461,8 +467,8 @@ gof.plot <- function(pred.obs.data, value.lab,
                      ...) {
 
   .Deprecated("plot_gof_pk")
-  
-  
+
+
   if (smart_tagging && !is.na(subgroup_by)) {
     stop("smart_tagging and subgroup_by options are not compatible")
   }
@@ -907,7 +913,8 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           counter_prefix = FALSE,
                           x_unit = NA,
                           y_unit = NA,
-                          xlab = "Time", 
+                          xlab = "Time",
+                          ylab = NA,
                           pretty_x_breaks = TRUE,
                           plot_log = TRUE,
                           plot_lin = TRUE,
@@ -924,57 +931,57 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                           parallel = FALSE,
                           parallel.cores = "auto",
                           ...) {
-  
+
   # validate
   format <- match.arg(format)
-  
+
   # prepare functions
   msg_fn <- if (silent) function(x, nl = TRUE) {} else function(x, nl = TRUE) {message(x, appendLF = nl)}
-  
+
   plot_fn <- function(file_name) {
       do.call(format, append(list(file_name), format_opts))
   }
-  
+
   id_fn <- function(profile, counter, is_fraction, linlog = c("linear", "log")) {
-    
+
     # for user functions
     if (is.function(file_prefix)) {
-      
+
       result <- file_prefix(profile, counter, is_fraction, linlog)
       if(!is.character(result))
-        stop("file_prefix function does not return a string")  
+        stop("file_prefix function does not return a string")
       return(result)
     }
-    
+
     id <- profile$id
     if (sanatize_id)
       id <- .sanatize_filename(id)
-    
-    
+
+
     # standard is (prefix)_ID_(frac)_(1)[LOG/LIN]
     result <- if (!is.null(file_prefix)) paste0(file_prefix, "_", id) else id
-    
+
     if (is_fraction)
       result <- paste0(result, "_frac")
-    
+
     if (counter_prefix)
       result <- paste0(result, "_", counter)
-    
+
     result <- paste0(result, "_", toupper(linlog))
-    
+
     return(result)
   }
-  
+
   units_fn <- function(profile, counter, is_fraction) {
-    
+
     unit_time <- NA
     unit_value <- NA
-    
+
     if (is.function(x_unit))
       unit_time <- x_unit(profile, counter, is_fraction)
     else
       unit_time <- x_unit
-    
+
     if (is.function(y_unit))
       unit_value <- y_unit(profile, counter, is_fraction)
     else {
@@ -982,70 +989,70 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
       if (!is.na(unit_value) && is_fraction)
         unit_value <- as_units("%")
     }
-    
+
     result <- list(time = unit_time,
                    value = unit_value)
-    
+
     return(result)
   }
-  
+
   par_plot_fn <- function() {
-    
+
     if (!is.null(par_fn))
       par_fn()
     else
       par(mar = par()$mar + c(0, 2, 0, 0), mgp = par()$mgp + c(0.2, -0.0, 0))
   }
-  
+
   panel_fn <- function(profile, counter, is_fraction, linlog) {
     if (!is.null(panel_first))
       panel_first(profile, counter, is_fraction, linlog)
   }
-  
-  
+
+
   plot_lin_fn <- function(profile, counter, is_fraction) {
     if (is.function(plot_lin))
       return(plot_lin(profile, counter, is_fraction))
-    
+
     return(plot_lin)
   }
-  
+
   plot_log_fn <- function(profile, counter, is_fraction) {
     if (is.function(plot_log))
       return(plot_log(profile, counter, is_fraction))
-    
+
     return(plot_log && !is_fraction)
   }
-  
+
   add_legend_fn <- function(profile, counter, obs_data) {
-    
+
     if(is.character(add_legend_text)) {
-      
+
       if (add_legend_text == "n" || add_legend_text == "N") {
-        
+
         # number of subjects
         tmp <- paste(add_legend_text, "=")
-        
+
         # gather observed data
         obs <- .gather.ids(obs_data, profile$obs.ids)
         obs <- purrr::compact(obs)
         if (length(obs) == 0)
           return(NA)
-        
+
         if (!is.na(profile$obs.ids) && length(obs) != length(profile$obs.ids))
           stop(paste("Matched profiles with id < ", profile$id ,"> have missing observed data"))
-        
+
 
         n_sub <- sapply(obs, function(x) {x$N})
         n_sub <- unique(n_sub)
         if (length(n_sub) > 1) {
           msg_fn(paste("\n  * Found different N for observed data. First non-NA was used."))
-          
+
           n_sub <- dplyr::first(na.omit(n_sub))
         }
-        
+
         return(paste(tmp, n_sub))
-        
+
       } else {
         # single string or vector of strings
         if (length(add_legend_text) > 1)
@@ -1053,51 +1060,51 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
         else
           return(add_legend_text)
       }
-      
-      
+
+
     } else if (is.function(add_legend_text)) {
-      
+
       # custom function
       # gather observed data
       obs <- .gather.ids(obs_data, profile$obs.ids)
       obs <- purrr::compact(obs)
       return(add_legend_text(profile, counter, obs))
     }
-    
+
     return(NA)
   }
-  
-  
+
+
   ###############################################################################
   if (is.null(names(pop_fn)))
     names(pop_fn) <- c("avg", "min", "max")
   avg.fn = pop_fn$avg
   min.var.fn = pop_fn$min
   max.var.fn = pop_fn$max
-  
-  
+
+
   main_plot_args_def <- list(bty = 'l', las = 0, cex.main = 1.6,
-                             cex.axis = 1.5, cex.lab = 1.5, 
+                             cex.axis = 1.5, cex.lab = 1.5,
                              cex = 1.5)
   main_plot_args <- .ls_override(main_plot_args_def, plot_args)
-  
-  legend_plot_args_def <- list(x = "topright", cex = 1.4, 
-                               lwd = 3, bty = "n", 
+
+  legend_plot_args_def <- list(x = "topright", cex = 1.4,
+                               lwd = 3, bty = "n",
                                y.intersp = 1.2)
   legend_plot_args <- .ls_override(legend_plot_args_def, legend_args)
-  
+
   cex <- geom$cex
   poly.alpha <- geom$poly_alpha
   sim.lwd <- geom$lwd
   error.lwd <- geom$err_lwd
-  
+
   # plotting loop
   msg_fn(paste("Plotting to folder: <", plot_folder, ">"))
-  
+
   if (parallel) {
     if (is.character(parallel.cores)) {
       if (tolower(parallel.cores) == "auto")
-        parallel.cores <- min(parallel::detectCores(logical = FALSE), 
+        parallel.cores <- min(parallel::detectCores(logical = FALSE),
                               max(1, floor(length(profiles) / 2)))
       else
         stop("parallel.cores must be auto or a positive number", call. = FALSE)
@@ -1106,34 +1113,34 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
       if (parallel.cores <= 0)
         stop("parallel.cores must be a positive number")
     }
-    
+
     msg_fn(paste("Using <", parallel.cores, "> cores for parallel computing"))
     doParallel::registerDoParallel(cores = parallel.cores)
     on.exit(doParallel::stopImplicitCluster())
   }
-  
+
   `%doit%` <- if(parallel) foreach::`%dopar%` else foreach::`%do%`
   foreach::foreach(i = 1:length(profiles)) %doit% {
     profile <- profiles[[i]]
     counter <- i
     msg_fn(paste("* Processing <", profile$id, ">"), nl = FALSE)
-    
+
     is_fraction <- has_fraction(profile)
     units <- units_fn(profile, counter, is_fraction)
-    
+
     add_led <- add_legend_fn(profile, counter, observed_data)
-    
+
     # linear plots
     p_lin <- plot_lin_fn(profile, counter, is_fraction)
     msg_fn(paste("\tLin:", p_lin), nl = FALSE)
     if (p_lin) {
-      
+
       file_name <- paste0(id_fn(profile, counter, is_fraction, "linear"), ".", format)
       full_name <- file.path(plot_folder, file_name)
-      
+
       plot_fn(full_name)
       par_plot_fn()
-      
+
       plot.matched(profile, observed_data,
                    avg.fn = avg.fn, min.var.fn = min.var.fn, max.var.fn = max.var.fn,
                    time.unit = units$time, value.unit = units$value,
@@ -1141,25 +1148,25 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    poly.alpha = poly.alpha, cex = cex, sim.lwd = sim.lwd, error.lwd =error.lwd,
                    add.legend.text = add_led,
                    legend.plot.args = legend_plot_args,
-                   main.plot.args = main_plot_args, 
-                   ylab = NA, show.main = T, show.legend = T, 
+                   main.plot.args = main_plot_args,
+                   ylab = ylab, show.main = T, show.legend = T,
                    rm.zero.neg.rows = F, ymax.rel.add = 0.0,
                    legend_format = legend_format,
                    panel.first = panel_fn(profile, counter, is_fraction, "linear"), ...)
-      
+
       dev.off()
     }
-    
+
     # log plots
     p_log <- plot_log_fn(profile, counter, is_fraction)
     msg_fn(paste("\tLog:", p_log), nl = FALSE)
     if (p_log) {
       file_name <- paste0(id_fn(profile, counter, is_fraction, "log"), ".", format)
       full_name <- file.path(plot_folder, file_name)
-      
+
       plot_fn(full_name)
       par_plot_fn()
-      
+
       plot.matched(profile, observed_data,
                    avg.fn = avg.fn, min.var.fn = min.var.fn, max.var.fn = max.var.fn,
                    time.unit = units$time, value.unit = units$value,
@@ -1167,16 +1174,16 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
                    poly.alpha = poly.alpha, cex = cex, sim.lwd = sim.lwd, error.lwd =error.lwd,
                    add.legend.text = add_led,
                    legend.plot.args = legend_plot_args,
-                   main.plot.args = append(main_plot_args,  list(log = "y")), 
-                   ylab = NA, show.main = T, show.legend = T, 
+                   main.plot.args = append(main_plot_args,  list(log = "y")),
+                   ylab = ylab, show.main = T, show.legend = T,
                    rm.zero.neg.rows = F, ymax.rel.add = 0.0,
                    legend_format = legend_format,
                    panel.first = panel_fn(profile, counter, is_fraction, "log"), ...)
-      
+
       dev.off()
     }
     msg_fn("")
-  } 
-  
+  }
+
   msg_fn(paste("Plotted <", length(profiles), "> profiles"))
 }
