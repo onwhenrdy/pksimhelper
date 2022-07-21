@@ -13,7 +13,7 @@ NULL
 
 
 .ls_override <- function(default, new) {
-  
+
   res <- c(new, default)
   res[!base::duplicated(names(res))]
 }
@@ -162,7 +162,7 @@ is.blank <- function(x){
 .rm.units <- function(obs) {
   if (.has.units(obs))
     obs <- units::drop_units(obs)
-  
+
   return(obs)
 }
 
@@ -381,8 +381,10 @@ is.valid.profile <- function(profile, msg = c("warning", "message", "error", "no
 
 # sanatizes files names
 .sanatize_filename <- function(file) {
-  
+
   file <- gsub(" +", "", file)
+  file <- gsub("/", "_", file)
+  file <- gsub("&", "+", file)
   iconv(file, "latin1", "ASCII", sub = "x")
 }
 
@@ -390,28 +392,28 @@ is.valid.profile <- function(profile, msg = c("warning", "message", "error", "no
 # parses a string or number and tries to convert to logical (TRUE/FALASE)
 # Returns NULL if not possible
 .parse_logical <- function(input) {
-  
+
   if (is.character(input)) {
-    
+
     input <- trimws(tolower(input))
-    
-    if (input == "t" || input == "true" || 
+
+    if (input == "t" || input == "true" ||
         input == "yes" || input == "1")
       return(TRUE)
-    
-    if (input == "f" || input == "false" || 
+
+    if (input == "f" || input == "false" ||
         input == "no" || input == "0")
       return(FALSE)
   }
   else if (is.numeric(input)) {
-    
+
     if (input == 1)
       return(TRUE)
-    
+
     if (input == 0)
       return(FALSE)
   }
-  
+
   return(NULL)
 }
 
@@ -422,16 +424,16 @@ is.valid.profile <- function(profile, msg = c("warning", "message", "error", "no
 #' @param profile A matched profile
 #'
 #' @return TRUE if the molecule of any profile has fraction unit else FALSE
-#'  
+#'
 has_fraction <- function(profile) {
-  
+
   for (pro in profile$profiles) {
-    
+
     if (pro$mol$is.fraction)
       return(TRUE)
-    
+
   }
-  
+
   return(FALSE)
 }
 
