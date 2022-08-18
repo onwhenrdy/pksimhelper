@@ -275,7 +275,7 @@ combine_profiles <- function(profiles,
       x.offset$profiles <- c(x.offset$profiles, rep(pro$plot.infos$x.offset,
                                                     length(pro$profiles)))
 
-      if(!is.na(pro$obs.ids)) {
+      if (length(pro$obs.ids) > 0) {
         combined_pro$obs.ids <- append(combined_pro$obs.ids, pro$obs.ids)
 
         x.offset$obs <- c(x.offset$obs, rep(pro$plot.infos$x.offset,
