@@ -1,4 +1,3 @@
-
 # extract time column information and unit
 .id.time.col <- function(df, match = "time [") {
   col.names <- tolower(colnames(df))
@@ -35,8 +34,9 @@
   n.cols <- length(col.nrs)
 
   if (n.cols < 1) {
-    if (silent)
+    if (silent) {
       return(NULL)
+    }
 
     stop(paste("Could not identify value column for match tag <", match.tag, ">"))
   }
@@ -158,8 +158,9 @@ read.pop.profiles.from.master <- function(master.data,
     )
 
     groups <- NULL
-    if (length(group_names) > 0)
+    if (length(group_names) > 0) {
       groups <- as.character(data[i, group_names])
+    }
 
     pop.sim <- list(
       id = pop, obs.ids = obs.ids, profiles = profiles,
@@ -295,12 +296,68 @@ read.pop.profiles <- function(file,
 
 is.profile <- function(x) inherits(x, "profile")
 
-
+#' Read and Parse Observed Profile Data
+#'
+#' This function reads observed concentration–time profiles and corresponding reference metadata
+#' from an Excel or CSV file. It matches observed data to reference information and extracts
+#' molecule IDs, doses, routes, groups, and error metrics based on user-specified variance preferences.
+#'
+#' @param file `character(1)`. Path to the Excel file containing the observed and reference data.
+#' @param obs.sheet `numeric` or `character`. Sheet name or index in `file` with observed profile data. Default is `1`.
+#' @param reference.sheet `numeric` or `character`. Sheet name or index in `file` with reference metadata. Default is `2`.
+#' @param molecules `list`. List of molecule definitions used to match against molecule IDs found in the reference sheet.
+#' @param id.filter `character` or `NA`. Optional vector of IDs to filter profiles. If specified, only profiles with these IDs are returned.
+#' @param var.pref `character`. Ordered vector of acceptable variance/error column types to use (e.g., `"SD"`, `"SEM"`, `"GSD"`).
+#' The first available type (non-NA values) per ID in this order will be used.
+#'
+#' @return A `list` of profiles (each an object of class `"profile"`)
+#'
+#' @details
+#' The function:
+#' * Validates the file and sheet existence and readability.
+#' * Reads reference sheet as text to avoid type guessing issues.
+#' * Validates presence and uniqueness of required columns (`ID`, `Compound`, `Reference`, `Group`, `Citekey`, `Dose`, `Unit Dose`, `Route`) in the reference sheet.
+#' * Matches molecules from reference sheet against the provided `molecules` list.
+#' * Reads observed data and detects `Time`, `Value`, and error columns.
+#' * Chooses the first available/valid error column per ID according to `var.pref`.
+#' * Computes `Min` and `Max` values using the detected error column.
+#' * Filters IDs if `id.filter` is given.
+#' * Returns profiles with metadata and cleaned data frames.
+#'
+#' If duplicate time points are found in the observed data for an ID, duplicates are removed.
+#'
+#' @note
+#' This function expects specific column names in the sheets. Optional column `N` (population size) is supported but not mandatory.
+#'
+#' @examples
+#' \dontrun{
+#' profiles <- read.obs.profiles(
+#'   file = "data.xlsx",
+#'   molecules = list(mol1, mol2),
+#'   var.pref = c("SD", "SEM", "GSD")
+#' )
+#' }
+#'
+#' @export
 read.obs.profiles <- function(file,
                               obs.sheet = 1,
                               reference.sheet = 2,
                               molecules = list(),
-                              id.filter = NA) {
+                              id.filter = NA,
+                              var.pref = c("SD", "SEM", "GSD")) {
+  # test for unknown variance preferences
+  var.pref <- toupper(var.pref)
+  unique_prefs <- unique(var.pref)
+  allowed <- c("SD", "SEM", "GSD")
+  invalid <- setdiff(unique_prefs, allowed)
+  if (length(invalid) > 0) {
+    stop(paste("Unknown variance preference(s):", paste(invalid, collapse = ", ")))
+  }
+
+  if (length(var.pref) == 0) {
+    stop("No variance preferences provided")
+  }
+
   if (length(id.filter) > 1 || !is.na(id.filter)) {
     id.filter <- unlist(lapply(id.filter, toString))
   }
@@ -352,7 +409,7 @@ read.obs.profiles <- function(file,
     stop(paste("File <", base.name, ">: Could not identify Group column in reference sheet"))
   }
 
-    cite.col <- .id.col(ref.sheet, "Citekey")
+  cite.col <- .id.col(ref.sheet, "Citekey")
   if (is.na(cite.col)) {
     stop(paste("File <", base.name, ">: Could not identify Citekey column in reference sheet"))
   }
@@ -371,7 +428,7 @@ read.obs.profiles <- function(file,
   if (is.na(route.col)) {
     stop(paste("File <", base.name, ">: Could not identify Unit Route column in reference sheet"))
   }
-  
+
   # optional since 0.5
   pop.size.col <- .id.col(ref.sheet, "^N$", fixed = FALSE)
   pop.size.col.name <- "N"
@@ -380,34 +437,42 @@ read.obs.profiles <- function(file,
     pop.size.col <- NULL
     pop.size.col.name <- NULL
   }
-  
-  col.names <- c("ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY", 
-                 "DOSE", "DOSEUNIT", "ROUTE", pop.size.col.name)
-  
-  ref.sheet <- ref.sheet[c(id.col, mol.col, ref.col, group.col, cite.col, 
-                           dose.col, dunit.col, route.col, pop.size.col,
-                           pop.size.col)]
+
+  col.names <- c(
+    "ID", "MOL", "REF", "GROUP", "GROUP2", "GROUP3", "CKEY",
+    "DOSE", "DOSEUNIT", "ROUTE", pop.size.col.name
+  )
+
+  ref.sheet <- ref.sheet[c(
+    id.col, mol.col, ref.col, group.col, cite.col,
+    dose.col, dunit.col, route.col, pop.size.col,
+    pop.size.col
+  )]
   colnames(ref.sheet) <- col.names
-  
+
   ref.sheet$ID <- trimws(ref.sheet$ID)
   ref.sheet$GROUP <- trimws(ref.sheet$GROUP)
   ref.sheet$GROUP2 <- trimws(ref.sheet$GROUP2)
   ref.sheet$GROUP3 <- trimws(ref.sheet$GROUP3)
   id.mol.list <- list()
-  for (i in 1:length(ref.sheet$MOL)) {
+  for (i in seq_along(ref.sheet$MOL)) {
     mol <- ref.sheet$MOL[i]
     tmp.mol <- .find.molecule.from.id(molecules, mol)
     if (length(tmp.mol) < 2 && is.na(tmp.mol)) {
-      stop(paste("File <", base.name, ">: Could not find molecule with id <", mol, 
-                 "> from the reference sheet"), call. = FALSE)
+      stop(paste(
+        "File <", base.name, ">: Could not find molecule with id <", mol,
+        "> from the reference sheet"
+      ), call. = FALSE)
     }
     id.mol.list <- c(id.mol.list, list(tmp.mol))
   }
 
   # checks
   if (length(ref.sheet$ID) != length(unique(ref.sheet$ID))) {
-    stop(paste("File <", base.name, ">: Found non-unique IDs in the reference sheet:", 
-               ref.sheet$ID[which(duplicated(ref.sheet$ID))]), call. = FALSE)
+    stop(paste(
+      "File <", base.name, ">: Found non-unique IDs in the reference sheet:",
+      ref.sheet$ID[which(duplicated(ref.sheet$ID))]
+    ), call. = FALSE)
   }
 
   # observed data sheet
@@ -420,8 +485,9 @@ read.obs.profiles <- function(file,
   df <- as.data.frame(obs.sheet)
   id.col <- .id.col(df, "ID")
   if (is.na(id.col)) {
-    stop(paste("File <", base.name, ">: Could not identify ID column for observed sheet"), 
-         call. = FALSE)
+    stop(paste("File <", base.name, ">: Could not identify ID column for observed sheet"),
+      call. = FALSE
+    )
   }
 
   if (nrow(df) < 1) {
@@ -431,11 +497,34 @@ read.obs.profiles <- function(file,
 
   time.col <- .id.time.col(df)
   value.col <- .id.molecule.cols(df, "Value")
-  error.col <- .id.molecule.cols(df, "SD")
+
+
+  var.cols <- var.pref %>%
+    lapply(function(x) {
+      .id.molecule.cols(df, paste0("^", x), silent = TRUE)
+    })
+  names(var.cols) <- var.pref
+
+  if (all(is.null(var.cols))) {
+    stop(paste("File <", base.name, ">: Could not identify any variance columns for tags <", paste(var.pref, collapse = ", "), ">"))
+  }
+
+  for (i in seq_along(var.cols)) {
+    if (is.null(var.cols[[i]])) {
+      next
+    }
+
+    if (length(var.cols[[i]]$cols) > 1) {
+      stop(paste("File <", base.name, ">: Found ambiguous variance column for tag <", var.pref[i], ">"))
+    }
+
+    col <- var.cols[[i]]$cols[1]
+    df[, col] <- sapply(df[, col], as.numeric)
+  }
+
 
   df[, time.col$col] <- sapply(df[, time.col$col], as.numeric)
   df[, value.col$cols] <- sapply(df[, value.col$cols], as.numeric)
-  df[, error.col$cols] <- sapply(df[, error.col$col], as.numeric)
 
   ids <- unique(df[, id.col])
   if (length(id.filter) > 1 || !is.na(id.filter)) {
@@ -445,14 +534,48 @@ read.obs.profiles <- function(file,
   results <- list()
   for (id in ids) {
     data <- df[df[, id.col] == id, ]
-    data <- data[c(time.col$col, value.col$cols, error.col$cols)]
-    data <- cbind(data, Max = data[, 2] + data[, 3])
-    data[, 3] <- data[, 2] - data[, 3]
+    var_names <- names(var.cols)
+    error.col <- NULL
+    error.name <- NULL
+    for (n in var_names) {
+      error.tmp <- var.cols[[n]]
+      if (!is.null(error.tmp)) {
+        error.col <- error.tmp$cols
+        error.name <- n
+        tmp <- data[, error.col]
+        if (!all(is.na(tmp))) {
+          break
+        }
+      }
+    }
+
+    if (is.null(error.col)) {
+      stop(paste(
+        "File <", base.name, ">: Could not identify any variance data for tags <",
+        paste(var.pref, collapse = ", "), "> for ID <", id, ">"
+      ), call. = FALSE)
+    }
+
+    message(paste(
+      "Used variance data for ID <", id, ">: <", error.name, "> in file <", base.name, ">"
+    ))
+
+    data <- data[c(time.col$col, value.col$cols, error.col)]
+    if (error.name == "GSD") {
+      data <- cbind(data, Max = data[, 2] * data[, 3])
+      data[, 3] <- data[, 2] / data[, 3]
+    } else {
+      data <- cbind(data, Max = data[, 2] + data[, 3])
+      data[, 3] <- data[, 2] - data[, 3]
+    }
     colnames(data) <- c("Time", "Avg", "Min", "Max")
+
     i <- which(ref.sheet$ID == id)
     if (length(i) != 1) {
-      warning(paste("File <", base.name, ">: Found observed ID <", id,
-                    "> that has no match in the reference data sheet. Data will be skipped"))
+      warning(paste(
+        "File <", base.name, ">: Found observed ID <", id,
+        "> that has no match in the reference data sheet. Data will be skipped"
+      ))
       next
     }
 
@@ -469,7 +592,7 @@ read.obs.profiles <- function(file,
     # optionals since 0.5
     N <- ref.sheet$N[i]
     if (is.null(N)) N <- NA
-    
+
     entry <- list(
       molecule = id.mol.list[[i]],
       reference = gsub("\r\n", "\n", ref.sheet$REF[i]),
@@ -490,7 +613,7 @@ read.obs.profiles <- function(file,
       origin = "obs"
     )
 
-    #colnames(ref.sheet) <- col.names
+    # colnames(ref.sheet) <- col.names
     class(entry) <- "profile"
     results <- c(results, list(entry))
   }
@@ -632,29 +755,30 @@ read.master.file <- function(master.file,
     "x.min", "x.max",
     "y.min", "y.max",
     "y.min.log", "y.max.log",
-    "x.offset", "main", group_cols)
+    "x.offset", "main", group_cols
+  )
   df <- df[, colnames(df) %in% known]
 
-  if ("obs" %in% colnames(df))
+  if ("obs" %in% colnames(df)) {
     df$obs <- as.character(df$obs)
+  }
 
   # delete non-pop/sim lines
   missing.lines <- c()
   for (i in 1:nrow(df)) {
-
     p.name <- trimws(df$pop[i])
     s.name <- trimws(df$sim[i])
-    if ((p.name == "" || is.na(p.name))
-        && (s.name == "" || is.na(s.name))) {
+    if ((p.name == "" || is.na(p.name)) &&
+      (s.name == "" || is.na(s.name))) {
       message(paste("Skipped line", i, ": No population or simulation entry found."))
       missing.lines <- c(missing.lines, i)
-
     }
   }
 
   # check if sheet has entries
-  if (length(missing.lines > 0))
-    df <- df[-missing.lines,]
+  if (length(missing.lines > 0)) {
+    df <- df[-missing.lines, ]
+  }
   if (nrow(df) < 1) {
     stop("No enties (rows) found in the sheet", call. = FALSE)
   }
@@ -662,11 +786,13 @@ read.master.file <- function(master.file,
   # try to convert wrongly parsed obs ids to strings
   obs.to.str <- function(x) {
     suppressWarnings(num <- as.numeric(x))
-    if (is.na(num))
+    if (is.na(num)) {
       return(x)
+    }
 
-    if (num%%1==0)
+    if (num %% 1 == 0) {
       return(x)
+    }
 
     return(gsub("\\.", ",", x))
   }
@@ -675,7 +801,6 @@ read.master.file <- function(master.file,
 
   # test for missing molecules
   for (i in 1:nrow(df)) {
-
     mols <- df$pop.mol
     mol.strs <- unlist(strsplit(mols, ",", fixed = TRUE))
     if (length(mol.strs) == 0) {
@@ -789,8 +914,7 @@ read.sim.profiles.from.master <- function(master.data,
                                           file.csv.sep = ",",
                                           file.csv.dec = ".",
                                           action.on.multimatch = c("stop", "warning", "message", "silent"),
-                                          multifile.enties = F
-                                          ) {
+                                          multifile.enties = F) {
   if (!is.master(master.data)) {
     stop("Input must be of class master")
   }
@@ -846,10 +970,11 @@ read.sim.profiles.from.master <- function(master.data,
           multi.action("Selected the FIRST match !\n")
         } else {
           prev_matches <- paste0("< ", colnames(sheet)[matches], " > IN:\n", .get.sheet.info.str(sheet))
-          if (multifile.enties)
+          if (multifile.enties) {
             sheet_entry <- append(sheet_entry, list(sheet))
-          else
+          } else {
             sheet_entry[[1]] <- sheet
+          }
         }
       }
     }
@@ -867,11 +992,14 @@ read.sim.profiles.from.master <- function(master.data,
       match <- NULL
       for (sheet in sheet_entry) {
         match_tmp <- .id.molecule.cols(sheet, mol$file.name.match,
-                                       mol$add.file.matcher, is.fraction = mol$is.fraction,
-                                       fixed.unit = mol$fixed.unit, silent = TRUE)
+          mol$add.file.matcher,
+          is.fraction = mol$is.fraction,
+          fixed.unit = mol$fixed.unit, silent = TRUE
+        )
         # found the same entry in multiple sheets
-        if (length(match_tmp) > 0 && length(match) > 0)
+        if (length(match_tmp) > 0 && length(match) > 0) {
           stop(paste("Ambiguous sheets found for tag <", mol$file.name.match, ">"))
+        }
 
         # found the same entry in multiple columns
         if (length(match_tmp) > 0 && length(match_tmp$cols) > 1) {
@@ -884,14 +1012,15 @@ read.sim.profiles.from.master <- function(master.data,
         }
       }
 
-      if (length(match) == 0)
+      if (length(match) == 0) {
         stop(paste("Could not find entry for tag <", mol$file.name.match, ">"))
+      }
 
       #
-      #  result <- list(
-      #  id = match.tag,
-      #  cols = col.nrs,
-      #  unit = unit)
+      # result <- list(
+      # id = match.tag,
+      # cols = col.nrs,
+      # unit = unit)
       #
       mol.infos <- c(mol.infos, list(match))
     }
@@ -942,11 +1071,12 @@ read.sim.profiles.from.master <- function(master.data,
       x.offset = master$x.offset[i],
       main = master$main[i]
     )
-    
+
     groups <- NULL
-    if (length(group_names) > 0)
+    if (length(group_names) > 0) {
       groups <- as.character(master[i, group_names])
-    
+    }
+
     sim <- list(
       id = id, obs.ids = obs.ids, profiles = pro.results,
       groups = groups,
@@ -966,48 +1096,47 @@ read_molecule_file <- function(file,
                                csv.dec = ".",
                                xls.sheet = 1,
                                silent = FALSE) {
-
   base.name <- basename(file)
-  
+
   if (!.does.file.exist(file)) {
     stop(paste("File <", base.name, "> does not exist"))
   }
-  
+
   if (!.is.file.readable(file)) {
     stop(paste("File <", base.name, "> is not readable"))
   }
-  
+
   format <- match.arg(format)
-  
+
   if (format == "auto") {
     format <- .identify.file.ext(file)
     if (is.na(format)) {
       stop(paste("File <", base.name, "> has unknown file extension. Please specify the format."))
     }
   }
-  
+
   if (format == "tsv") {
     format <- "csv"
   }
-  
+
   df <- NA
   if (format == "xls") {
     suppressMessages(excel.sheet <- readxl::read_excel(file,
-                                                       sheet = xls.sheet,
-                                                       col_names = TRUE
+      sheet = xls.sheet,
+      col_names = TRUE
     ))
     df <- as.data.frame(excel.sheet)
   }
-  
+
   if (format == "csv") {
     df <- .read.csv(
       file = file, header = TRUE, sep = csv.sep, dec = csv.dec,
       encoding = "UTF-8"
     )
   }
-  
-  c.names <- tolower(colnames(df))    
-  
+
+  c.names <- tolower(colnames(df))
+
   name.idx <- which(grepl("name", c.names))
   display.idx <- which(grepl("display", c.names))
   id.idx <- which(grepl("id", c.names))
@@ -1022,160 +1151,171 @@ read_molecule_file <- function(file,
   legend.idx <- which(grepl("legend", c.names))
   match.idx <- which(grepl("match", c.names))
   add.match.idx <- which(grepl("more", c.names))
-  
-  
+
+
   if (length(name.idx) == 0 || length(name.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Name column."))
   }
-  
+
   if (length(display.idx) == 0 || length(display.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Display column."))
   }
-  
+
   if (length(id.idx) == 0 || length(id.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown ID column."))
   }
-  
+
   if (length(pubchem.idx) == 0 || length(pubchem.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Pubchem column."))
   }
-  
+
   if (length(color.idx) == 0 || length(color.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Color column."))
   }
-  
+
   if (length(ylab.idx) == 0 || length(ylab.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown ylab column."))
   }
-  
+
   if (length(pch.idx) == 0 || length(pch.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown pch column."))
   }
-  
+
   if (length(lty.idx) == 0 || length(lty.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown lty column."))
   }
-  
+
   if (length(mw.idx) == 0 || length(mw.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown MW column."))
   }
-  
+
   if (length(fixed.idx) == 0 || length(fixed.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Fixed Unit column."))
   }
-  
+
   if (length(fraction.idx) == 0 || length(fraction.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Is Fraction column."))
   }
-  
+
   if (length(legend.idx) == 0 || length(legend.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Show Legend column."))
   }
-  
+
   if (length(match.idx) == 0 || length(match.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown Match column."))
   }
-  
+
   if (length(add.match.idx) == 0 || length(add.match.idx) > 1) {
     stop(paste("File <", base.name, "> has ambiguous or unknown More column."))
   }
-  
-  
-  msg_fn <- if (silent) function(x, nl = TRUE) {} else function(x, nl = TRUE) {message(x, appendLF = nl)}
-  
+
+
+  msg_fn <- if (silent) {
+    function(x, nl = TRUE) {}
+  } else {
+    function(x, nl = TRUE) {
+      message(x, appendLF = nl)
+    }
+  }
+
   molecules <- list()
-  
+
   for (i in 1:nrow(df)) {
-    msg_fn(paste("* Parsing row <", i , ">"))
-    
+    msg_fn(paste("* Parsing row <", i, ">"))
+
     name <- df[i, name.idx]
     display.name <- df[i, display.idx]
     id <- df[i, id.idx]
     file.name.match <- df[i, match.idx]
     pubchem.id <- df[i, pubchem.idx]
     MW <- df[i, mw.idx]
-    
+
     # pch
     pch <- df[i, pch.idx]
-    if (is.na(pch))
+    if (is.na(pch)) {
       pch <- 19
-    else
+    } else {
       pch <- as.numeric(pch)
-    
+    }
+
     # color
     color <- df[i, color.idx]
     if (is.na(color)) {
-      
       color <- "black"
-    } else  {
+    } else {
       rgb <- unlist(strsplit(color, ",", fixed = T))
       if (length(rgb) > 1) {
-        if (length(rgb) != 4)
+        if (length(rgb) != 4) {
           stop("Color in must be defined as string or RGBA separated by comma")
-        
+        }
+
         rgb <- as.numeric(rgb)
         color <- do.call(grDevices::rgb, append(rgb, list(maxColorValue = 255)))
       }
     }
-    
+
     # ylab
     ylab <- df[i, ylab.idx]
-    if (is.na(ylab))
+    if (is.na(ylab)) {
       ylab <- "Plasma Concentration"
-    
-    lty <-  df[i, lty.idx]
-    if (is.na(lty))
+    }
+
+    lty <- df[i, lty.idx]
+    if (is.na(lty)) {
       lty <- 1
-    else
+    } else {
       lty <- as.numeric(lty)
-    
-      
+    }
+
+
     # in legend
     in.legend <- df[i, legend.idx]
     if (is.na(in.legend)) {
-      
       in.legend <- TRUE
     } else {
       in.legend <- .parse_logical(in.legend)
-      if (is.null(in.legend))
+      if (is.null(in.legend)) {
         stop("Show Legend must be convertible to logical")
+      }
     }
-    
+
     # is fraction
     is.fraction <- df[i, fraction.idx]
     if (is.na(is.fraction)) {
-      
       is.fraction <- FALSE
     } else {
       is.fraction <- .parse_logical(is.fraction)
-      if (is.null(is.fraction))
+      if (is.null(is.fraction)) {
         stop("Is Fraction must be convertible to logical")
+      }
     }
-    
+
     # fixed unit
     fixed.unit <- df[i, fixed.idx]
-    if (!is.na(fixed.unit))
+    if (!is.na(fixed.unit)) {
       fixed.unit <- as_units(fixed.unit)
-    
+    }
+
     # additional files matcher
     add.file.matcher <- df[i, add.match.idx]
     if (!is.na(add.file.matcher)) {
       add.file.matcher <- base::trimws(unlist(strsplit(add.file.matcher, ",", fixed = T)))
-    }  
-    
-    mol <- molecule(name = name, display.name = display.name, id = id, 
-                    file.name.match = file.name.match, 
-                    add.file.matcher = add.file.matcher, 
-                    pubchem.id = pubchem.id, MW = MW, is.fraction = is.fraction, 
-                    fixed.unit = fixed.unit, 
-                    ylab = ylab, color = color, 
-                    pch = pch, lty = lty, in.legend = in.legend)
-    
+    }
+
+    mol <- molecule(
+      name = name, display.name = display.name, id = id,
+      file.name.match = file.name.match,
+      add.file.matcher = add.file.matcher,
+      pubchem.id = pubchem.id, MW = MW, is.fraction = is.fraction,
+      fixed.unit = fixed.unit,
+      ylab = ylab, color = color,
+      pch = pch, lty = lty, in.legend = in.legend
+    )
+
     molecules <- append(molecules, list(mol))
   }
-  
+
   msg_fn(paste("Created <", nrow(df), "> molecules"))
-  
+
   return(molecules)
 }
-

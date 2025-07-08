@@ -38,3 +38,6 @@ rsconnect/
 *.Rda
 *.svg
 fds
+
+# for test data files
+testdata
