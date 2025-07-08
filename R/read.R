@@ -95,6 +95,13 @@
   return(mols)
 }
 
+#' Extract Group Columns from Master Data
+#'
+#' Helper to obtain the names of group columns in a loaded master table.
+#'
+#' @param master.data A master data list as returned by `read.master.file`.
+#' @return Character vector of column names or `NULL` if no groups present.
+#' @export
 groups.master <- function(master.data) {
   group_idx <- which(grepl("group", tolower(colnames(master.data$data))))
   has_groups <- length(group_idx) > 0
@@ -106,6 +113,21 @@ groups.master <- function(master.data) {
 }
 
 
+#' Read Population Profiles Listed in a Master File
+#'
+#' Helper that loads several population profile files using the information from
+#' a master table.
+#'
+#' @param master.data Master data as returned by `read.master.file`.
+#' @param molecules List of molecule definitions.
+#' @param files.dir Directory containing the files.
+#' @param pop.file.ext File extension appended to entries in the master table.
+#' @param pop.file.format File format (`"auto"`, `"xsl"`, `"csv"`).
+#' @param pop.file.csv.sep,pop.file.csv.dec CSV separator and decimal character.
+#' @param pop.file.xls.sheet Sheet index for Excel files.
+#'
+#' @return List of `MatchedProfiles` objects.
+#' @export
 read.pop.profiles.from.master <- function(master.data,
                                           molecules = list(),
                                           files.dir = ".",
@@ -174,10 +196,28 @@ read.pop.profiles.from.master <- function(master.data,
   return(results)
 }
 
+#' Test for MatchedProfiles Object
+#'
+#' @param x Object to test.
+#' @return Logical indicating if `x` is of class `"MatchedProfiles"`.
+#' @export
 is.matched.profiles <- function(x) inherits(x, "MatchedProfiles")
 
 
-# Read study list from file
+#' Read Population Simulation Profiles
+#'
+#' Reads exported simulation profiles from PK-Sim/MoBi. The file format can be
+#' CSV or Excel and may contain several individuals.
+#'
+#' @param file Path to the profile file (without optional extension).
+#' @param molecules List of molecule definitions used for column matching.
+#' @param format File format (`"auto"`, `"xsl"`, `"csv"`).
+#' @param add.file.ext Extension appended to `file` when reading.
+#' @param csv.sep,csv.dec CSV separator and decimal character.
+#' @param xls.sheet Sheet index for Excel files.
+#'
+#' @return A list of profile objects of class `profile`.
+#' @export
 read.pop.profiles <- function(file,
                               molecules = list(),
                               format = c("auto", "xsl", "csv"),
@@ -294,6 +334,11 @@ read.pop.profiles <- function(file,
   return(results)
 }
 
+#' Test if Object is a Profile
+#'
+#' @param x Object to test.
+#' @return Logical indicating whether `x` inherits from class `"profile"`.
+#' @export
 is.profile <- function(x) inherits(x, "profile")
 
 #' Read and Parse Observed Profile Data
@@ -1090,6 +1135,18 @@ read.sim.profiles.from.master <- function(master.data,
 }
 
 
+#' Read Molecule Definitions from File
+#'
+#' Imports a table of molecule meta-data definitions.
+#'
+#' @param file Path to the file.
+#' @param format File format (`"auto"`, `"xsl"`, `"csv"`).
+#' @param csv.sep,csv.dec CSV delimiter options.
+#' @param xls.sheet Sheet index for Excel files.
+#' @param silent Logical; suppress progress messages.
+#'
+#' @return A list of `molecule` objects.
+#' @export
 read_molecule_file <- function(file,
                                format = c("auto", "xsl", "csv"),
                                csv.sep = ",",
