@@ -221,7 +221,22 @@ average.pop.profile <- function(profile,
   return(result)
 }
 
-# calculate ranges of a profile
+#' Range for a Simulation Profile
+#'
+#' Compute the time or data range for a profile object. Optionally a
+#' simple "smart" minimum distance grouping can be used for time ranges.
+#'
+#' @param profile A profile object as created by the package.
+#' @param range.type Either "time" to return the time range or "data" to
+#'   return the range of all data columns.
+#' @param smart.md Logical. If `TRUE` and `range.type` is "time" a simple
+#'   minimum distance grouping is applied.
+#' @param smart.md.threshold Numeric threshold to identify time gaps when
+#'   `smart.md` is used.
+#'
+#' @return A numeric vector of length two or, if smart grouping is enabled,
+#'   a data.frame with `from` and `to` columns describing groups.
+#' @export
 range <- function(...) UseMethod("range")
 range.profile <- function(profile, range.type = c("time", "data"),
                           smart.md = FALSE,
@@ -264,6 +279,18 @@ range.profile <- function(profile, range.type = c("time", "data"),
   return(base::range(data, na.rm = TRUE))
 }
 
+#' Convert Units of a Profile
+#'
+#' Helper for changing the time or concentration units of a profile.
+#'
+#' @param profile Profile object to convert.
+#' @param time.unit Target time unit (`character` or `units`). If `NA` the time
+#'   unit is left unchanged.
+#' @param value.unit Target value unit (`character` or `units`). If `NA` the
+#'   value unit is left unchanged.
+#'
+#' @return The modified profile with converted units.
+#' @export
 convert <- function(...) UseMethod("convert")
 convert.profile <- function(profile, time.unit = NA, value.unit = NA) {
   if (!is.profile(profile)) {
@@ -306,7 +333,17 @@ convert.profile <- function(profile, time.unit = NA, value.unit = NA) {
   return(result)
 }
 
-# trims a data.set for a certain time interval
+#' Trim a Profile by Time
+#'
+#' Return a copy of a profile restricted to a specific time window.
+#'
+#' @param profile A profile object.
+#' @param from Start time. If `NA` the beginning of the profile is used.
+#' @param to End time. If `NA` the end of the profile is used.
+#' @param tol Numerical tolerance when matching time points.
+#'
+#' @return A profile object trimmed to the requested time interval.
+#' @export
 trim.time <- function(profile, from = NA, to = NA, tol = .Machine$double.eps^0.5) {
   if (!is.profile(profile)) {
     stop("Input must be of class profile")
@@ -342,10 +379,25 @@ trim.time <- function(profile, from = NA, to = NA, tol = .Machine$double.eps^0.5
   })))
 }
 
+#' Merge Two Profiles
+#'
+#' Combines two profile objects handling unit conversion and duplicate time
+#' points. The resulting profile inherits metadata from one of the inputs.
+#'
+#' @param from Profile whose data should be merged into `into`.
+#' @param into Profile that provides metadata and receives merged data.
+#' @param meta.data Which profile's metadata should be kept ("into" or "from").
+#' @param units How units are handled: "check" (error if different), "into" or
+#'   "from" to convert.
+#' @param keep.duplicates Which profile's duplicate time points are kept.
+#' @param validate.result Logical. Validate the resulting profile.
+#'
+#' @return A combined profile object.
+#' @export
 merge.profile <- function(from, into, meta.data = c("into, from"),
                           units = c("check, into, from"),
                           keep.duplicates = c("into", "from"),
-                          validate.result = T) {
+                          validate.result = TRUE) {
   from$data$Time <- from$data$Time
   into$data$Time <- into$data$Time
 
@@ -410,12 +462,27 @@ merge.profile <- function(from, into, meta.data = c("into, from"),
 }
 
 
+#' Interpolate a Profile
+#'
+#' Creates a new profile whose sampling times match another profile. Data are
+#' interpolated linearly or using splines.
+#'
+#' @param in.profile Profile to be interpolated.
+#' @param pattern.profile Profile providing the target time grid.
+#' @param method Interpolation method, either "linear" or "spline".
+#' @param spline.method Spline method to use when `method` is "spline".
+#' @param conserve.time.unit Logical, convert back to the original time unit.
+#' @param only.pattern.times If `TRUE` only the interpolated time points are
+#'   returned.
+#'
+#' @return A profile object with data interpolated to the pattern profile.
+#' @export
 interpol.profile <- function(in.profile,
                              pattern.profile,
                              method = c("linear", "spline"),
                              spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
-                             conserve.time.unit = F,
-                             only.pattern.times = F) {
+                             conserve.time.unit = FALSE,
+                             only.pattern.times = FALSE) {
   method <- match.arg(method)
   spline.method <- match.arg(spline.method)
 
@@ -517,6 +584,15 @@ interpol.profile <- function(in.profile,
   return(auc)
 }
 
+#' Calculate Area Under the Curve
+#'
+#' Integrates the mean profile concentration curve using different methods.
+#'
+#' @param profile Profile object with `data.type == "mean"`.
+#' @param type Integration method: "linear", "linlog" or "spline".
+#'
+#' @return A value with units representing the area under the curve.
+#' @export
 calculate.auc <- function(profile, type = c("linear", "linlog", "spline")) {
   type <- match.arg(type)
   if (!is.profile(profile)) {
@@ -540,6 +616,14 @@ calculate.auc <- function(profile, type = c("linear", "linlog", "spline")) {
   return(auc)
 }
 
+#' Maximum Concentration and Time
+#'
+#' Determine the maximal value and corresponding time in a mean profile.
+#'
+#' @param profile Profile object with `data.type == "mean"`.
+#'
+#' @return A list with `t.max` and `value.max` both carrying units.
+#' @export
 calculate.max <- function(profile) {
   if (!is.profile(profile)) {
     stop("Input must be of class profile")
@@ -564,6 +648,20 @@ calculate.max <- function(profile) {
   return(list(t.max = t.max, value.max = v.max))
 }
 
+#' Predicted vs Observed for Multiple IDs
+#'
+#' Convenience wrapper iterating over a list of matched profiles and returning
+#' a combined data frame with predictions and observations.
+#'
+#' @param matched.list List of `MatchedProfiles` objects.
+#' @param obs.data Observed profiles list.
+#' @param time.unit,value.unit Units used for interpolation and output.
+#' @param interpol.method,spline.method Parameters forwarded to
+#'   [interpol.profile()].
+#' @param auc.method AUC calculation method.
+#'
+#' @return A list with `meta` information and combined `data`.
+#' @export
 all_pred_vs_obs <- function(matched.list, obs.data,
                             time.unit, value.unit,
                             interpol.method = c("linear", "spline"),
@@ -587,6 +685,16 @@ all_pred_vs_obs <- function(matched.list, obs.data,
 }
 
 
+#' Predicted vs Observed for One ID
+#'
+#' Interpolates a simulation profile to observation times and returns a
+#' data.frame containing prediction and observation columns.
+#'
+#' @inheritParams all_pred_vs_obs
+#' @param matched A single `MatchedProfiles` entry.
+#'
+#' @return A list with meta information and a data.frame.
+#' @export
 pred_vs_obs <- function(matched, obs.data,
                         time.unit,
                         value.unit,
@@ -649,8 +757,22 @@ pred_vs_obs <- function(matched, obs.data,
 
 
 
+#' Calculate Prediction vs Observation Metrics for Multiple IDs
+#'
+#' Iterates over `matched.list` and computes AUC and Cmax metrics comparing
+#' predictions to observations.
+#'
+#' @inheritParams all_pred_vs_obs
+#' @param only.obs.times Logical, if `TRUE` only observation times are used for
+#'   interpolation.
+#' @param auc.method Method used in [calculate.auc()].
+#' @param smart.md.threshold Threshold forwarded to [range.profile()] when
+#'   splitting profiles.
+#'
+#' @return A data.frame with calculated metrics per ID and molecule.
+#' @export
 calculate.all.pred.obs <- function(matched.list, obs.data, time.unit, value.unit,
-                                   only.obs.times = F,
+                                   only.obs.times = FALSE,
                                    interpol.method = c("linear", "spline"),
                                    interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
                                    auc.method = c("linear", "linlog", "spline"),
@@ -674,10 +796,20 @@ calculate.all.pred.obs <- function(matched.list, obs.data, time.unit, value.unit
 }
 
 
+#' Prediction vs Observation Metrics for a Single ID
+#'
+#' Calculates AUC and Cmax comparison metrics between a simulation profile and
+#' observed data.
+#'
+#' @inheritParams calculate.all.pred.obs
+#' @param matched A `MatchedProfiles` object.
+#'
+#' @return A data.frame containing the computed metrics for each molecule.
+#' @export
 calculate.pred.obs <- function(matched, obs.data,
                                time.unit,
                                value.unit,
-                               only.obs.times = F,
+                               only.obs.times = FALSE,
                                interpol.method = c("linear", "spline"),
                                interpol.spline.method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
                                auc.method = c("linear", "linlog", "spline"),
@@ -912,6 +1044,20 @@ cor.metrics.pred.obs <- function(df, groups = NULL) {
 
 
 
+#' Calculate Ratios Between Treatment Arms
+#'
+#' Utility to compute ratios of PK metrics between control and effect groups.
+#'
+#' @param df Data.frame created by `calculate.all.pred.obs` or
+#'   `calculate.pred.obs`.
+#' @param id.group Column name identifying the ID variable.
+#' @param effect.group Column indicating treatment arms.
+#' @param control.name Name of the control level in `effect.group`.
+#' @param effect.name Name of the effect level in `effect.group`.
+#' @param ref Which group should be used as reference when computing ratios.
+#'
+#' @return A data.frame of ratios.
+#' @export
 calculate_ratios <- function(df, id.group = "group", effect.group = "group2",
                              control.name = "control", effect.name = "ddi",
                              ref = c("control", "effect")) {

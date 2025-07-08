@@ -170,7 +170,29 @@ molecule <- function(name,
 is.molecule <- function(x) inherits(x, "molecule")
 
 
-# clones a molecule
+#' Clone a Molecule Definition
+#'
+#' Creates a copy of an existing molecule definition allowing overriding of
+#' selected fields.
+#'
+#' @param molecule The molecule to copy.
+#' @param name Optional new name.
+#' @param display.name Optional new display name.
+#' @param id Optional new identifier.
+#' @param file.name.match Optional new file matching pattern.
+#' @param add.file.matcher Additional file matchers to append.
+#' @param pubchem.id Optional PubChem ID.
+#' @param MW Optional molecular weight.
+#' @param is.fraction Whether the molecule represents a fraction.
+#' @param fixed.unit Fixed unit for this molecule.
+#' @param ylab Y-axis label used in plots.
+#' @param color Plotting color.
+#' @param pch Point type for plotting.
+#' @param lty Line type for plotting.
+#' @param in.legend Should the molecule appear in legends.
+#'
+#' @return A new molecule object.
+#' @export
 molecule_clone <- function(molecule,
                            name = NULL,
                            display.name = NULL,
@@ -259,6 +281,21 @@ molecule_clone <- function(molecule,
 }
 
 
+#' Combine Matched Profile Objects
+#'
+#' Utility to merge several `MatchedProfiles` objects by group. The function can
+#' optionally rename IDs and choose a reference profile.
+#'
+#' @param profiles List of `MatchedProfiles` objects to combine.
+#' @param by_group Group index used to determine which profiles belong together.
+#' @param rename_id_by_group Optional group index whose value becomes the new ID.
+#' @param ref_group If provided, selects the profile with `ref_id` from this
+#'   group as template.
+#' @param ref_id Name of the reference group.
+#' @param silent Logical controlling progress messages.
+#'
+#' @return A list of combined `MatchedProfiles` objects.
+#' @export
 combine_profiles <- function(profiles,
                              by_group = 1,
                              rename_id_by_group = NULL,

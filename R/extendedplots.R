@@ -316,6 +316,18 @@ plot_gof_pk <- function(pred.obs.data, #
 }
 
 
+#' Generate a Reference to Colour Mapping
+#'
+#' Creates a small lookup table mapping reference names to plotting colours.
+#'
+#' @param df Data frame or list containing a `data` element with the reference
+#'   column.
+#' @param ref_column Column name containing the reference labels.
+#' @param col Optional vector of colours; if `NULL` distinct colours are
+#'   generated.
+#'
+#' @return A data.frame with columns `reference` and `col`.
+#' @export
 color_map <- function(df, ref_column = "ref", col = NULL) {
   
   if (!is.data.frame(df))
