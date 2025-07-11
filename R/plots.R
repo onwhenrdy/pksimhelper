@@ -146,7 +146,7 @@ plot.matched <- function(matched, obs.data,
   if (length(obs) == 0)
     message(paste("Attention: Matched profiles with id < ", matched$id ,"> do not have any observed data"))
 
-  if (!is.na(matched$obs.ids) && length(obs) != length(matched$obs.ids))
+  if (!any(is.na(matched$obs.ids)) && length(obs) != length(matched$obs.ids))
     stop(paste("Attention: Matched profiles with id < ", matched$id ,"> have missing observed data"))
 
   obs <- purrr::compact(obs)
