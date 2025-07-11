@@ -825,7 +825,7 @@ calculate.pred.obs <- function(matched, obs.data,
     stop(paste("Attention: Matched profiles with id < ", matched$id, "> could not match observed data."))
   }
 
-  if (!is.na(matched$obs.ids) && length(obs) != length(matched$obs.ids)) {
+  if (!any(is.na(matched$obs.ids)) && length(obs) != length(matched$obs.ids)) {
     stop(paste("Attention: Matched profiles with id < ", matched$id, "> have missing observed data"))
   }
 
