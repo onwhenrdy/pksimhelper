@@ -1053,7 +1053,7 @@ plot_profiles <- function(profiles, observed_data, md_assist = NULL,
         if (length(obs) == 0)
           return(NA)
 
-        if (!is.na(profile$obs.ids) && length(obs) != length(profile$obs.ids))
+        if (!any(!is.na(profile$obs.ids)) && length(obs) != length(profile$obs.ids))
           stop(paste("Matched profiles with id < ", profile$id ,"> have missing observed data"))
 
 
