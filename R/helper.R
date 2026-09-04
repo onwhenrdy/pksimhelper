@@ -393,6 +393,9 @@ is.valid.profile <- function(profile, msg = c("warning", "message", "error", "no
 # Returns NULL if not possible
 .parse_logical <- function(input) {
 
+  if (is.logical(input) && !is.na(input))
+    return(input)
+
   if (is.character(input)) {
 
     input <- trimws(tolower(input))

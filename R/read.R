@@ -18,13 +18,14 @@
                               silent = F) {
   col.names <- tolower(colnames(df))
   match.tag <- tolower(match.tag)
+  add.match.tags <- add.match.tags[!is.na(add.match.tags)]
   if (length(add.match.tags) > 0) {
     add.match.tags <- tolower(add.match.tags)
   }
 
   grep.tag <- match.tag
 
-  if (length(add.match.tags > 0)) {
+  if (length(add.match.tags) > 0) {
     grep.tag <- c(grep.tag, add.match.tags)
     grep.tag <- sapply(grep.tag, function(x) paste("(?=.*", x, ")", sep = ""), simplify = T, USE.NAMES = F)
     grep.tag <- paste(grep.tag, collapse = "")
@@ -490,8 +491,7 @@ read.obs.profiles <- function(file,
 
   ref.sheet <- ref.sheet[c(
     id.col, mol.col, ref.col, group.col, cite.col,
-    dose.col, dunit.col, route.col, pop.size.col,
-    pop.size.col
+    dose.col, dunit.col, route.col, pop.size.col
   )]
   colnames(ref.sheet) <- col.names
 
@@ -916,7 +916,7 @@ is.master <- function(x) inherits(x, "master")
       attr(df, "file.name") <- base.name
       attr(df, "sheet.idx") <- 1
       attr(df, "sheet.name") <- NA
-      results <- append(results, df)
+      results <- append(results, list(df))
     } else {
       sheet.names <- .sheets(file)
       sheets <- length(sheet.names)
